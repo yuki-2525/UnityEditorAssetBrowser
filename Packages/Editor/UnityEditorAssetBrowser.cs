@@ -1,26 +1,26 @@
-using UnityEngine;
-using UnityEditor;
 using System;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using UnityEditorAssetBrowser.Models;
-using UnityEditorAssetBrowser.Helper;
 using Newtonsoft.Json;
+using UnityEditor;
+using UnityEditorAssetBrowser.Helper;
+using UnityEditorAssetBrowser.Models;
+using UnityEngine;
 
 namespace UnityEditorAssetBrowser
 {
-public class UnityEditorAssetBrowser : EditorWindow
-{
-    private AvatarExplorerDatabase? aeDatabase;
+    public class UnityEditorAssetBrowser : EditorWindow
+    {
+        private AvatarExplorerDatabase? aeDatabase;
         private KonoAssetAvatarsDatabase? kaAvatarsDatabase;
         private KonoAssetWearablesDatabase? kaWearablesDatabase;
         private KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase;
-    private Vector2 scrollPosition;
-    private string aeDatabasePath = "";
-    private string kaDatabasePath = "";
-    private string searchQuery = "";
-    private int selectedTab = 0;
+        private Vector2 scrollPosition;
+        private string aeDatabasePath = "";
+        private string kaDatabasePath = "";
+        private string searchQuery = "";
+        private int selectedTab = 0;
         private string[] tabs = { "アバター", "アバター関連", "ワールド" };
         private bool showDebugInfo = false;
         private Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
@@ -32,15 +32,15 @@ public class UnityEditorAssetBrowser : EditorWindow
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
         private string lastSearchQuery = "";
 
-    [MenuItem("Window/Unity Editor Asset Browser")]
-    public static void ShowWindow()
-    {
-        GetWindow<UnityEditorAssetBrowser>("Unity Editor Asset Browser");
-    }
+        [MenuItem("Window/Unity Editor Asset Browser")]
+        public static void ShowWindow()
+        {
+            GetWindow<UnityEditorAssetBrowser>("Unity Editor Asset Browser");
+        }
 
-    private void OnEnable()
-    {
-        LoadSettings();
+        private void OnEnable()
+        {
+            LoadSettings();
             InitializeStyles();
         }
 
@@ -49,49 +49,49 @@ public class UnityEditorAssetBrowser : EditorWindow
             titleStyle = new GUIStyle(EditorStyles.boldLabel)
             {
                 fontSize = 14,
-                margin = new RectOffset(4, 4, 4, 4)
+                margin = new RectOffset(4, 4, 4, 4),
             };
 
             boxStyle = new GUIStyle(EditorStyles.helpBox)
             {
                 padding = new RectOffset(10, 10, 10, 10),
-                margin = new RectOffset(0, 0, 5, 5)
+                margin = new RectOffset(0, 0, 5, 5),
             };
-    }
+        }
 
-    private void OnGUI()
-    {
+        private void OnGUI()
+        {
             EditorGUILayout.BeginVertical();
             EditorGUILayout.Space(10);
 
-        // データベースパスの設定
-        EditorGUILayout.BeginHorizontal();
+            // データベースパスの設定
+            EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("AE Database Path:", GUILayout.Width(120));
             aeDatabasePath = EditorGUILayout.TextField(aeDatabasePath);
-        if (GUILayout.Button("Browse", GUILayout.Width(60)))
-        {
-                var path = EditorUtility.OpenFolderPanel("Select AE Database Directory", "", "");
-            if (!string.IsNullOrEmpty(path))
+            if (GUILayout.Button("Browse", GUILayout.Width(60)))
             {
-                aeDatabasePath = path;
-                LoadAEDatabase();
+                var path = EditorUtility.OpenFolderPanel("Select AE Database Directory", "", "");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    aeDatabasePath = path;
+                    LoadAEDatabase();
+                }
             }
-        }
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
 
-        EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("KA Database Path:", GUILayout.Width(120));
             kaDatabasePath = EditorGUILayout.TextField(kaDatabasePath);
-        if (GUILayout.Button("Browse", GUILayout.Width(60)))
-        {
-                var path = EditorUtility.OpenFolderPanel("Select KA Database Directory", "", "");
-            if (!string.IsNullOrEmpty(path))
+            if (GUILayout.Button("Browse", GUILayout.Width(60)))
             {
-                kaDatabasePath = path;
-                LoadKADatabase();
+                var path = EditorUtility.OpenFolderPanel("Select KA Database Directory", "", "");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    kaDatabasePath = path;
+                    LoadKADatabase();
+                }
             }
-        }
-        EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(10);
 
@@ -121,20 +121,23 @@ public class UnityEditorAssetBrowser : EditorWindow
             // スクロールビューとページネーションボタンのコンテナ
             GUILayout.BeginVertical();
 
-        // スクロールビュー
-            scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition, GUILayout.ExpandHeight(true));
-        switch (selectedTab)
-        {
-            case 0:
+            // スクロールビュー
+            scrollPosition = EditorGUILayout.BeginScrollView(
+                scrollPosition,
+                GUILayout.ExpandHeight(true)
+            );
+            switch (selectedTab)
+            {
+                case 0:
                     ShowAvatarsContent();
-                break;
-            case 1:
+                    break;
+                case 1:
                     ShowItemsContent();
                     break;
                 case 2:
                     ShowWorldObjectsContent();
-                break;
-        }
+                    break;
+            }
             EditorGUILayout.EndScrollView();
 
             // ページネーションボタン（スクロールビューの外）
@@ -154,11 +157,11 @@ public class UnityEditorAssetBrowser : EditorWindow
             GUILayout.EndVertical();
             EditorGUILayout.EndVertical();
 
-        if (GUI.changed)
-        {
-            SaveSettings();
+            if (GUI.changed)
+            {
+                SaveSettings();
+            }
         }
-    }
 
         private void ShowAvatarsContent()
         {
@@ -177,18 +180,27 @@ public class UnityEditorAssetBrowser : EditorWindow
             }
 
             // 検索フィルター適用
-            var filteredItems = allItems.Where(item =>
-            {
-                if (string.IsNullOrEmpty(searchQuery)) return true;
-                
-                if (item is AvatarExplorerItem aeItem)
-                    return aeItem.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-                
-                if (item is KonoAssetAvatarItem kaItem)
-                    return kaItem.description.name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-                
-                return false;
-            }).ToList();
+            var filteredItems = allItems
+                .Where(item =>
+                {
+                    if (string.IsNullOrEmpty(searchQuery))
+                        return true;
+
+                    if (item is AvatarExplorerItem aeItem)
+                        return aeItem.Title.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    if (item is KonoAssetAvatarItem kaItem)
+                        return kaItem.description.name.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    return false;
+                })
+                .ToList();
 
             // ページネーション
             int startIndex = currentPage * ItemsPerPage;
@@ -225,18 +237,27 @@ public class UnityEditorAssetBrowser : EditorWindow
             }
 
             // 検索フィルター適用
-            var filteredItems = allItems.Where(item =>
-            {
-                if (string.IsNullOrEmpty(searchQuery)) return true;
-                
-                if (item is AvatarExplorerItem aeItem)
-                    return aeItem.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-                
-                if (item is KonoAssetWearableItem kaItem)
-                    return kaItem.description.name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase);
-                
-                return false;
-            }).ToList();
+            var filteredItems = allItems
+                .Where(item =>
+                {
+                    if (string.IsNullOrEmpty(searchQuery))
+                        return true;
+
+                    if (item is AvatarExplorerItem aeItem)
+                        return aeItem.Title.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    if (item is KonoAssetWearableItem kaItem)
+                        return kaItem.description.name.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    return false;
+                })
+                .ToList();
 
             // ページネーション
             int startIndex = currentPage * ItemsPerPage;
@@ -258,13 +279,19 @@ public class UnityEditorAssetBrowser : EditorWindow
 
         private void ShowWorldObjectsContent()
         {
-            if (kaWorldObjectsDatabase?.data == null) return;
+            if (kaWorldObjectsDatabase?.data == null)
+                return;
 
             // 検索フィルター適用
-            var filteredItems = kaWorldObjectsDatabase.data.Where(item =>
-                string.IsNullOrEmpty(searchQuery) || 
-                item.description.name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
-            ).ToList();
+            var filteredItems = kaWorldObjectsDatabase
+                .data.Where(item =>
+                    string.IsNullOrEmpty(searchQuery)
+                    || item.description.name.Contains(
+                        searchQuery,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                .ToList();
 
             // ページネーション
             int startIndex = currentPage * ItemsPerPage;
@@ -304,10 +331,12 @@ public class UnityEditorAssetBrowser : EditorWindow
             if (string.IsNullOrEmpty(searchQuery))
                 return items;
 
-            return items.Where(item => 
-                item.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                item.AuthorName.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
-            ).ToList();
+            return items
+                .Where(item =>
+                    item.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
+                    || item.AuthorName.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
+                )
+                .ToList();
         }
 
         private List<object> GetFilteredItems()
@@ -325,20 +354,32 @@ public class UnityEditorAssetBrowser : EditorWindow
             if (string.IsNullOrEmpty(searchQuery))
                 return items;
 
-            return items.Where(item =>
-            {
-                if (item is AvatarExplorerItem aeItem)
+            return items
+                .Where(item =>
                 {
-                    return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                           aeItem.AuthorName.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0;
-                }
-                else if (item is KonoAssetWearableItem kaItem)
-                {
-                    return kaItem.description.name.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                           kaItem.description.creator.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0;
-                }
-                return false;
-            }).ToList();
+                    if (item is AvatarExplorerItem aeItem)
+                    {
+                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
+                                >= 0
+                            || aeItem.AuthorName.IndexOf(
+                                searchQuery,
+                                StringComparison.OrdinalIgnoreCase
+                            ) >= 0;
+                    }
+                    else if (item is KonoAssetWearableItem kaItem)
+                    {
+                        return kaItem.description.name.IndexOf(
+                                searchQuery,
+                                StringComparison.OrdinalIgnoreCase
+                            ) >= 0
+                            || kaItem.description.creator.IndexOf(
+                                searchQuery,
+                                StringComparison.OrdinalIgnoreCase
+                            ) >= 0;
+                    }
+                    return false;
+                })
+                .ToList();
         }
 
         private List<KonoAssetWorldObjectItem> GetFilteredWorldObjects()
@@ -347,16 +388,22 @@ public class UnityEditorAssetBrowser : EditorWindow
             if (string.IsNullOrEmpty(searchQuery))
                 return items.ToList();
 
-            return items.Where(item =>
-                item.description.name.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0 ||
-                item.description.creator.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
-            ).ToList();
+            return items
+                .Where(item =>
+                    item.description.name.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
+                        >= 0
+                    || item.description.creator.IndexOf(
+                        searchQuery,
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
+                .ToList();
         }
 
         private void ShowAvatarItem(AvatarExplorerItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            
+
             // タイトルと画像
             GUILayout.BeginHorizontal();
             if (!string.IsNullOrEmpty(item.ImagePath))
@@ -391,7 +438,10 @@ public class UnityEditorAssetBrowser : EditorWindow
             {
                 unityPackageFoldouts[item.Title] = false;
             }
-            unityPackageFoldouts[item.Title] = EditorGUILayout.Foldout(unityPackageFoldouts[item.Title], "UnityPackage");
+            unityPackageFoldouts[item.Title] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.Title],
+                "UnityPackage"
+            );
 
             if (unityPackageFoldouts[item.Title])
             {
@@ -414,12 +464,16 @@ public class UnityEditorAssetBrowser : EditorWindow
         private void ShowKonoAssetItem(KonoAssetAvatarItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            
+
             // タイトルと画像
             GUILayout.BeginHorizontal();
             if (item.description.imageFilename != null)
             {
-                var imagePath = Path.Combine(kaDatabasePath, "images", item.description.imageFilename);
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
+                );
                 if (File.Exists(imagePath))
                 {
                     var texture = LoadTexture(imagePath);
@@ -440,7 +494,10 @@ public class UnityEditorAssetBrowser : EditorWindow
             {
                 unityPackageFoldouts[item.description.name] = false;
             }
-            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(unityPackageFoldouts[item.description.name], "UnityPackage");
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
 
             if (unityPackageFoldouts[item.description.name])
             {
@@ -464,12 +521,16 @@ public class UnityEditorAssetBrowser : EditorWindow
         private void ShowKonoAssetWearableItem(KonoAssetWearableItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            
+
             // タイトルと画像
             GUILayout.BeginHorizontal();
             if (item.description.imageFilename != null)
             {
-                var imagePath = Path.Combine(kaDatabasePath, "images", item.description.imageFilename);
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
+                );
                 if (File.Exists(imagePath))
                 {
                     var texture = LoadTexture(imagePath);
@@ -495,7 +556,10 @@ public class UnityEditorAssetBrowser : EditorWindow
             {
                 unityPackageFoldouts[item.description.name] = false;
             }
-            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(unityPackageFoldouts[item.description.name], "UnityPackage");
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
 
             if (unityPackageFoldouts[item.description.name])
             {
@@ -519,12 +583,16 @@ public class UnityEditorAssetBrowser : EditorWindow
         private void ShowKonoAssetWorldObjectItem(KonoAssetWorldObjectItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            
+
             // タイトルと画像
             GUILayout.BeginHorizontal();
             if (item.description.imageFilename != null)
             {
-                var imagePath = Path.Combine(kaDatabasePath, "images", item.description.imageFilename);
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
+                );
                 if (File.Exists(imagePath))
                 {
                     var texture = LoadTexture(imagePath);
@@ -546,7 +614,10 @@ public class UnityEditorAssetBrowser : EditorWindow
             {
                 unityPackageFoldouts[item.description.name] = false;
             }
-            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(unityPackageFoldouts[item.description.name], "UnityPackage");
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
 
             if (unityPackageFoldouts[item.description.name])
             {
@@ -569,7 +640,8 @@ public class UnityEditorAssetBrowser : EditorWindow
 
         private Texture2D LoadTexture(string path)
         {
-            if (string.IsNullOrEmpty(path)) return null;
+            if (string.IsNullOrEmpty(path))
+                return null;
             if (imageCache.TryGetValue(path, out var cachedTexture))
             {
                 return cachedTexture;
@@ -594,28 +666,30 @@ public class UnityEditorAssetBrowser : EditorWindow
             }
 
             return null;
-    }
+        }
 
-    private void LoadAEDatabase()
-    {
-        if (!string.IsNullOrEmpty(aeDatabasePath))
+        private void LoadAEDatabase()
         {
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+            {
                 Debug.Log($"Loading AE database from: {aeDatabasePath}");
-            aeDatabase = DatabaseHelper.LoadAEDatabase(aeDatabasePath);
+                aeDatabase = DatabaseHelper.LoadAEDatabase(aeDatabasePath);
                 if (aeDatabase != null)
                 {
-                    Debug.Log($"AE database loaded successfully. Items count: {aeDatabase.Items.Count}");
+                    Debug.Log(
+                        $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
+                    );
                 }
             }
-    }
+        }
 
-    private void LoadKADatabase()
-    {
-        if (!string.IsNullOrEmpty(kaDatabasePath))
+        private void LoadKADatabase()
         {
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+            {
                 Debug.Log($"Loading KA database from: {kaDatabasePath}");
                 var metadataPath = Path.Combine(kaDatabasePath, "metadata");
-                
+
                 if (!Directory.Exists(metadataPath))
                 {
                     Debug.LogError($"Metadata directory not found at: {metadataPath}");
@@ -632,9 +706,17 @@ public class UnityEditorAssetBrowser : EditorWindow
                         kaAvatarsDatabase = new KonoAssetAvatarsDatabase
                         {
                             version = baseDb.version,
-                            data = baseDb.data.Select(item => JsonConvert.DeserializeObject<KonoAssetAvatarItem>(JsonConvert.SerializeObject(item))).ToArray()
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetAvatarItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
                         };
-                        Debug.Log($"KA avatars loaded successfully. Items count: {kaAvatarsDatabase.data.Length}");
+                        Debug.Log(
+                            $"KA avatars loaded successfully. Items count: {kaAvatarsDatabase.data.Length}"
+                        );
                     }
                 }
 
@@ -648,9 +730,17 @@ public class UnityEditorAssetBrowser : EditorWindow
                         kaWearablesDatabase = new KonoAssetWearablesDatabase
                         {
                             version = baseDb.version,
-                            data = baseDb.data.Select(item => JsonConvert.DeserializeObject<KonoAssetWearableItem>(JsonConvert.SerializeObject(item))).ToArray()
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetWearableItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
                         };
-                        Debug.Log($"KA wearables loaded successfully. Items count: {kaWearablesDatabase.data.Length}");
+                        Debug.Log(
+                            $"KA wearables loaded successfully. Items count: {kaWearablesDatabase.data.Length}"
+                        );
                     }
                 }
 
@@ -664,26 +754,36 @@ public class UnityEditorAssetBrowser : EditorWindow
                         kaWorldObjectsDatabase = new KonoAssetWorldObjectsDatabase
                         {
                             version = baseDb.version,
-                            data = baseDb.data.Select(item => JsonConvert.DeserializeObject<KonoAssetWorldObjectItem>(JsonConvert.SerializeObject(item))).ToArray()
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetWorldObjectItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
                         };
-                        Debug.Log($"KA world objects loaded successfully. Items count: {kaWorldObjectsDatabase.data.Length}");
+                        Debug.Log(
+                            $"KA world objects loaded successfully. Items count: {kaWorldObjectsDatabase.data.Length}"
+                        );
                     }
                 }
+            }
+        }
+
+        private void LoadSettings()
+        {
+            aeDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_AEDatabasePath", "");
+            kaDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_KADatabasePath", "");
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+                LoadAEDatabase();
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+                LoadKADatabase();
+        }
+
+        private void SaveSettings()
+        {
+            EditorPrefs.SetString("UnityEditorAssetBrowser_AEDatabasePath", aeDatabasePath);
+            EditorPrefs.SetString("UnityEditorAssetBrowser_KADatabasePath", kaDatabasePath);
         }
     }
-
-    private void LoadSettings()
-    {
-        aeDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_AEDatabasePath", "");
-        kaDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_KADatabasePath", "");
-            if (!string.IsNullOrEmpty(aeDatabasePath)) LoadAEDatabase();
-            if (!string.IsNullOrEmpty(kaDatabasePath)) LoadKADatabase();
-    }
-
-    private void SaveSettings()
-    {
-        EditorPrefs.SetString("UnityEditorAssetBrowser_AEDatabasePath", aeDatabasePath);
-        EditorPrefs.SetString("UnityEditorAssetBrowser_KADatabasePath", kaDatabasePath);
-        }
-    }
-} 
+}

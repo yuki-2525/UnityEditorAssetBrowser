@@ -1,11 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
-using UnityEngine;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEditorAssetBrowser.Models;
-using Newtonsoft.Json;
+using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Helper
 {
@@ -16,7 +16,7 @@ namespace UnityEditorAssetBrowser.Helper
             Formatting = Formatting.Indented,
             NullValueHandling = NullValueHandling.Ignore,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-            ObjectCreationHandling = ObjectCreationHandling.Replace
+            ObjectCreationHandling = ObjectCreationHandling.Replace,
         };
 
         public static AvatarExplorerDatabase? LoadAEDatabase(string path)
@@ -33,7 +33,7 @@ namespace UnityEditorAssetBrowser.Helper
                 Debug.Log($"Loading AE database from: {jsonPath}");
                 var json = File.ReadAllText(jsonPath);
                 var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(json, JsonSettings);
-                
+
                 if (items == null)
                 {
                     Debug.LogError("Failed to deserialize AE database");
@@ -118,4 +118,4 @@ namespace UnityEditorAssetBrowser.Helper
             return Directory.GetFiles(directory, "*.unitypackage", SearchOption.AllDirectories);
         }
     }
-} 
+}

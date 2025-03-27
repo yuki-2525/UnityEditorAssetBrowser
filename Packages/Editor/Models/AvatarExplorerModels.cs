@@ -57,4 +57,4 @@ namespace UnityEditorAssetBrowser.Models
         [JsonProperty("ThumbnailUrl")]
         public string ThumbnailUrl { get; set; } = "";
     }
-} 
+}

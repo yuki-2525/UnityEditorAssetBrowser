@@ -17,12 +17,14 @@ namespace UnityEditorAssetBrowser.Models
 
     public class KonoAssetWearablesDatabase : KonoAssetDatabase
     {
-        public new KonoAssetWearableItem[] data { get; set; } = Array.Empty<KonoAssetWearableItem>();
+        public new KonoAssetWearableItem[] data { get; set; } =
+            Array.Empty<KonoAssetWearableItem>();
     }
 
     public class KonoAssetWorldObjectsDatabase : KonoAssetDatabase
     {
-        public new KonoAssetWorldObjectItem[] data { get; set; } = Array.Empty<KonoAssetWorldObjectItem>();
+        public new KonoAssetWorldObjectItem[] data { get; set; } =
+            Array.Empty<KonoAssetWorldObjectItem>();
     }
 
     public class KonoAssetWearableItem
@@ -58,4 +60,4 @@ namespace UnityEditorAssetBrowser.Models
         public long createdAt { get; set; }
         public long publishedAt { get; set; }
     }
-} 
+}
