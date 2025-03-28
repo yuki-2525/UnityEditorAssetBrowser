@@ -6,7 +6,7 @@ on:
       version:
         description: 'Version to release (e.g. 1.0.0)'
         required: true
-        type: string
+        default: '1.0.0'
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Unity
+      - name: Set up Unity
         uses: game-ci/setup-unity@v3
 
       - name: Build Unity Package
@@ -29,7 +29,6 @@ jobs:
           buildName: UnityEditorAssetBrowser
           buildsPath: build
           buildMethod: BuildScript.Build
-          customParameters: -version ${{ github.event.inputs.version }}
 
       - name: Create Release
         id: create_release
@@ -48,6 +47,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/UnityEditorAssetBrowser.unitypackage
-          asset_name: UnityEditorAssetBrowser.unitypackage
-          asset_content_type: application/octet-stream 
+          asset_path: ./build/UnityEditorAssetBrowser.zip
+          asset_name: UnityEditorAssetBrowser.zip
+          asset_content_type: application/zip
