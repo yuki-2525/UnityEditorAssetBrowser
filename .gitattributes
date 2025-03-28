@@ -1,2 +1,44 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Unity generated
+*.csproj text eol=crlf
+*.unityproj text eol=crlf
+*.sln text eol=crlf
+*.suo text eol=crlf
+*.tmp text eol=crlf
+*.user text eol=crlf
+*.userprefs text eol=crlf
+*.pidb text eol=crlf
+*.booproj text eol=crlf
+*.svd text eol=crlf
+*.pdb text eol=crlf
+*.mdb text eol=crlf
+*.opendb text eol=crlf
+*.VC.db text eol=crlf
+
+# Unity3D generated meta files
+*.pidb.meta text eol=crlf
+*.pdb.meta text eol=crlf
+*.mdb.meta text eol=crlf
+
+# Unity3D generated file on crash reports
+sysinfo.txt text eol=crlf
+
+# Builds
+*.apk text eol=crlf
+*.aab text eol=crlf
+*.unitypackage text eol=crlf
+*.app text eol=crlf
+
+# Crashlytics generated file
+crashlytics-build.properties text eol=crlf
+
+# OS generated
+.DS_Store text eol=crlf
+.DS_Store? text eol=crlf
+._* text eol=crlf
+.Spotlight-V100 text eol=crlf
+.Trashes text eol=crlf
+ehthumbs.db text eol=crlf
+Thumbs.db text eol=crlf
