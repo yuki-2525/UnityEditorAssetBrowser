@@ -1,43 +1,44 @@
 # Unity Editor Asset Browser
 
-AvatarExplorerとKonoAssetのデータベースを統合して表示・管理するUnity Editor拡張です。
+Unity Editor用のアセットデータベースビューワーです。Avatar ExplorerとKonoAssetのデータベースを統合して表示・管理できます。
 
 ## 機能
 
-- AvatarExplorerとKonoAssetのデータベースを統合表示
-- アバター、アバター関連アイテム、ワールドの3つのタブで管理
+- Avatar ExplorerとKonoAssetのデータベースを統合表示
+- アバター、アバター関連アイテム、ワールドオブジェクトの3つのタブで表示
 - 検索機能によるアイテムのフィルタリング
+- ページネーションによる大量のアイテムの表示
 - UnityPackageのインポート機能
-- ページネーションによる大量のアイテムの効率的な表示
+- 画像のプレビュー表示
 
-## インストール方法
+## 使い方
 
-### VPMを使用する場合
+1. Unity Editorのメニューから「Window > Unity Editor Asset Browser」を選択してウィンドウを開きます。
 
-1. VRChat Creator Companionを開く
-2. プロジェクトを選択
-3. 「Packages」タブを開く
-4. 「Add package from git URL」をクリック
-5. 以下のURLを入力：
-   ```
-   https://github.com/yuki-2525/UnityEditorAssetBrowser.git?path=/Packages/com.oasobi.unityeditorassetbrowser
-   ```
+2. データベースパスの設定
+   - AE Database Path: Avatar Explorerのデータベースフォルダを選択
+   - KA Database Path: KonoAssetのデータベースフォルダを選択
 
-### 手動インストールの場合
+3. タブの切り替え
+   - アバター: Avatar ExplorerのアバターとKonoAssetのアバターを表示
+   - アバター関連: Avatar ExplorerのアイテムとKonoAssetのウェアラブルを表示
+   - ワールド: KonoAssetのワールドオブジェクトを表示
 
-1. このリポジトリをクローンまたはダウンロード
-2. `Packages/com.oasobi.unityeditorassetbrowser`フォルダをプロジェクトの`Packages`フォルダにコピー
+4. アイテムの表示
+   - 各アイテムは画像、タイトル、作者情報を表示
+   - UnityPackageがある場合は「UnityPackage」セクションでインポート可能
 
-## 使用方法
+5. 検索機能
+   - 検索フィールドにキーワードを入力すると、タイトルでフィルタリングされます
 
-1. Unity Editorで「Window > Unity Editor Asset Browser」を選択
-2. AE Database PathとKA Database Pathを設定
-3. 各タブでアイテムを閲覧・管理
+6. ページネーション
+   - 「前へ」「次へ」ボタンでページを切り替え
+   - 現在のページ番号と総ページ数を表示
 
-## 依存関係
+## 注意事項
 
-- VRChat SDK Base 3.x.x
+- Avatar Explorerの画像パスは以下のように処理されます：
+  - "Datas"で始まるパス: `{aeDatabasePath}\\{パス}`として処理
+  - それ以外のパス: そのままのパスとして使用
 
-## ライセンス
-
-MIT License
+- データベースパスは自動的に保存され、次回起動時に復元されます
