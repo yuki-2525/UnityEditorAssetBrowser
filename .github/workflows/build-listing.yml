@@ -3,8 +3,7 @@ name: Build Repo Listing
 on:
   push:
     branches: [ main ]
-  release:
-    types: [published, edited, deleted]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,15 +13,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Unity
+        uses: game-ci/setup-unity@v3
+
+      - name: Build Unity Package
+        uses: game-ci/unity-builder@v3
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        with:
+          targetPlatform: StandaloneWindows64
+          projectPath: .
+          buildName: UnityEditorAssetBrowser
+          buildsPath: build
+          buildMethod: BuildScript.Build
+
       - name: Build Repo Listing
         uses: vrchat-community/package-list-action@v1
         with:
-          repo: ${{ github.repository }}
-          branch: ${{ github.ref_name }}
+          repo: yuki-2525/UnityEditorAssetBrowser
           package-name: com.yuki-2525.unityeditorassetbrowser
+          list-public-directory: Website
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./Website
+          publish_dir: ./Website 
