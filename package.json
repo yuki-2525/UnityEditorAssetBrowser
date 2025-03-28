@@ -1,5 +1,5 @@
 {
-    "name": "com.oasobi.unityeditorassetbrowser",
+    "name": "com.yuki-2525.unityeditorassetbrowser",
     "version": "1.0.0",
     "displayName": "Unity Editor Asset Browser",
     "description": "AvatarExplorerとKonoAssetのデータベースを統合して表示・管理するUnity Editor拡張",
@@ -27,13 +27,13 @@
         "com.vrchat.base": "3.1.12"
     },
     "legacyFolders": {
-        "Assets\\oasobi\\UnityEditorAssetBrowser": "Packages\\com.oasobi.unityeditorassetbrowser"
+        "Assets\\yuki-2525\\UnityEditorAssetBrowser": "Packages\\com.yuki-2525.unityeditorassetbrowser"
     },
     "legacyFiles": {},
     "vpmDependencies": {
         "com.vrchat.base": "3.x.x"
     },
-    "url": "https://github.com/yuki-2525/UnityEditorAssetBrowser.git?path=/Packages/com.oasobi.unityeditorassetbrowser",
+    "url": "https://github.com/yuki-2525/UnityEditorAssetBrowser.git?path=/Packages/com.yuki-2525.unityeditorassetbrowser",
     "samples": [],
     "gitDependencies": {},
     "license": "MIT"

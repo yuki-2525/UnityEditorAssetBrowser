@@ -20,13 +20,13 @@ AvatarExplorerとKonoAssetのデータベースを統合して表示・管理す
 4. 「Add package from git URL」をクリック
 5. 以下のURLを入力：
    ```
-   https://github.com/yuki-2525/UnityEditorAssetBrowser.git?path=/Packages/com.oasobi.unityeditorassetbrowser
+   https://github.com/yuki-2525/UnityEditorAssetBrowser.git?path=/Packages/com.yuki-2525.unityeditorassetbrowser
    ```
 
 ### 手動インストールの場合
 
 1. このリポジトリをクローンまたはダウンロード
-2. `Packages/com.oasobi.unityeditorassetbrowser`フォルダをプロジェクトの`Packages`フォルダにコピー
+2. `Packages/com.yuki-2525.unityeditorassetbrowser`フォルダをプロジェクトの`Packages`フォルダにコピー
 
 ## 使用方法
 
