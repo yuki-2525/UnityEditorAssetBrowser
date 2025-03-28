@@ -4,10 +4,6 @@ using Newtonsoft.Json;
 
 namespace UnityEditorAssetBrowser.Models
 {
-    #region Database Model
-    /// <summary>
-    /// AvatarExplorerのデータベースモデル
-    /// </summary>
     public class AvatarExplorerDatabase
     {
         [JsonProperty("Items")]
@@ -16,21 +12,13 @@ namespace UnityEditorAssetBrowser.Models
         [JsonConstructor]
         public AvatarExplorerDatabase() { }
 
-        /// <summary>
-        /// 配列からデータベースを作成するための変換コンストラクタ
-        /// </summary>
-        /// <param name="items">アイテムの配列</param>
+        // 配列からデータベースを作成するための変換コンストラクタ
         public AvatarExplorerDatabase(AvatarExplorerItem[] items)
         {
             Items = new List<AvatarExplorerItem>(items);
         }
     }
-    #endregion
 
-    #region Item Model
-    /// <summary>
-    /// AvatarExplorerのアイテムモデル
-    /// </summary>
     public class AvatarExplorerItem
     {
         [JsonProperty("Title")]
@@ -69,5 +57,4 @@ namespace UnityEditorAssetBrowser.Models
         [JsonProperty("ThumbnailUrl")]
         public string ThumbnailUrl { get; set; } = "";
     }
-    #endregion
 }

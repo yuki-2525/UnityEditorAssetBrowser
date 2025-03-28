@@ -10,252 +10,122 @@ using UnityEngine;
 
 namespace UnityEditorAssetBrowser
 {
-    /// <summary>
-    /// Unity Editor用のアセットブラウザーウィンドウ
-    /// AvatarExplorerとKonoAssetのデータベースを統合して表示・管理する
-    /// </summary>
     public class UnityEditorAssetBrowser : EditorWindow
     {
-        #region Constants
-        /// <summary>1ページあたりのアイテム表示数</summary>
-        private const int ITEMS_PER_PAGE = 10;
-
-        /// <summary>ウィンドウのタイトル</summary>
-        private const string WINDOW_TITLE = "Unity Editor Asset Browser";
-
-        /// <summary>AEデータベースパスのEditorPrefsキー</summary>
-        private const string AE_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_AEDatabasePath";
-
-        /// <summary>KAデータベースパスのEditorPrefsキー</summary>
-        private const string KA_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_KADatabasePath";
-
-        /// <summary>ワールドカテゴリーの日本語キーワード</summary>
-        private const string WORLD_CATEGORY_JP = "ワールド";
-
-        /// <summary>ワールドカテゴリーの英語キーワード</summary>
-        private const string WORLD_CATEGORY_EN = "world";
-        #endregion
-
-        #region Database Fields
-        /// <summary>AvatarExplorerのデータベース</summary>
         private AvatarExplorerDatabase? aeDatabase;
-
-        /// <summary>KonoAssetのアバターデータベース</summary>
         private KonoAssetAvatarsDatabase? kaAvatarsDatabase;
-
-        /// <summary>KonoAssetのウェアラブルデータベース</summary>
         private KonoAssetWearablesDatabase? kaWearablesDatabase;
-
-        /// <summary>KonoAssetのワールドオブジェクトデータベース</summary>
         private KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase;
-        #endregion
-
-        #region UI Fields
-        /// <summary>スクロールビューの位置</summary>
         private Vector2 scrollPosition;
-
-        /// <summary>AEデータベースのパス</summary>
         private string aeDatabasePath = "";
-
-        /// <summary>KAデータベースのパス</summary>
         private string kaDatabasePath = "";
-
-        /// <summary>検索クエリ</summary>
         private string searchQuery = "";
-
-        /// <summary>選択中のタブインデックス</summary>
         private int selectedTab = 0;
-
-        /// <summary>タブのラベル</summary>
         private string[] tabs = { "アバター", "アバター関連", "ワールド" };
-
-        /// <summary>デバッグ情報の表示フラグ</summary>
         private bool showDebugInfo = false;
-
-        /// <summary>フォールドアウト状態の管理</summary>
         private Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
-
-        /// <summary>画像のキャッシュ</summary>
         private Dictionary<string, Texture2D> imageCache = new Dictionary<string, Texture2D>();
-
-        /// <summary>タイトル用のスタイル</summary>
         private GUIStyle titleStyle;
-
-        /// <summary>ボックス用のスタイル</summary>
         private GUIStyle boxStyle;
-
-        /// <summary>現在のページ番号</summary>
+        private const int ItemsPerPage = 10;
         private int currentPage = 0;
-
-        /// <summary>UnityPackageのフォールドアウト状態の管理</summary>
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
-
-        /// <summary>前回の検索クエリ</summary>
         private string lastSearchQuery = "";
-        #endregion
 
-        #region Unity Editor Window Methods
-        /// <summary>
-        /// メニューからウィンドウを表示する
-        /// </summary>
         [MenuItem("Window/Unity Editor Asset Browser")]
         public static void ShowWindow()
         {
-            GetWindow<UnityEditorAssetBrowser>(WINDOW_TITLE);
+            GetWindow<UnityEditorAssetBrowser>("Unity Editor Asset Browser");
         }
 
-        /// <summary>
-        /// ウィンドウが有効になった時の処理
-        /// </summary>
         private void OnEnable()
         {
             LoadSettings();
-        }
-
-        /// <summary>
-        /// GUIの描画処理
-        /// </summary>
-        private void OnGUI()
-        {
             InitializeStyles();
-            DrawMainWindow();
         }
-        #endregion
 
-        #region UI Drawing Methods
-        /// <summary>
-        /// メインウィンドウの描画
-        /// </summary>
-        private void DrawMainWindow()
+        private void InitializeStyles()
+        {
+            titleStyle = new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 14,
+                margin = new RectOffset(4, 4, 4, 4),
+            };
+
+            boxStyle = new GUIStyle(EditorStyles.helpBox)
+            {
+                padding = new RectOffset(10, 10, 10, 10),
+                margin = new RectOffset(0, 0, 5, 5),
+            };
+        }
+
+        private void OnGUI()
         {
             EditorGUILayout.BeginVertical();
             EditorGUILayout.Space(10);
 
-            DrawDatabasePathFields();
-            DrawTabBar();
-            DrawSearchField();
-            DrawSearchResultCount();
-            DrawContentArea();
-
-            if (GUI.changed)
-            {
-                SaveSettings();
-            }
-
-            EditorGUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// データベースパス入力フィールドの描画
-        /// </summary>
-        private void DrawDatabasePathFields()
-        {
-            DrawDatabasePathField("AE Database Path:", ref aeDatabasePath, LoadAEDatabase);
-            DrawDatabasePathField("KA Database Path:", ref kaDatabasePath, LoadKADatabase);
-            EditorGUILayout.Space(10);
-        }
-
-        /// <summary>
-        /// データベースパス入力フィールドの描画
-        /// </summary>
-        /// <param name="label">ラベル</param>
-        /// <param name="path">パス</param>
-        /// <param name="onPathChanged">パス変更時のコールバック</param>
-        private void DrawDatabasePathField(string label, ref string path, Action onPathChanged)
-        {
+            // データベースパスの設定
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(label, GUILayout.Width(120));
-            var newPath = EditorGUILayout.TextField(path);
-            if (newPath != path)
-            {
-                path = newPath;
-                onPathChanged();
-            }
+            EditorGUILayout.LabelField("AE Database Path:", GUILayout.Width(120));
+            aeDatabasePath = EditorGUILayout.TextField(aeDatabasePath);
             if (GUILayout.Button("Browse", GUILayout.Width(60)))
             {
-                var selectedPath = EditorUtility.OpenFolderPanel(
-                    $"Select {label} Directory",
-                    "",
-                    ""
-                );
-                if (!string.IsNullOrEmpty(selectedPath))
+                var path = EditorUtility.OpenFolderPanel("Select AE Database Directory", "", "");
+                if (!string.IsNullOrEmpty(path))
                 {
-                    path = selectedPath;
-                    onPathChanged();
+                    aeDatabasePath = path;
+                    LoadAEDatabase();
                 }
             }
             EditorGUILayout.EndHorizontal();
-        }
 
-        /// <summary>
-        /// タブバーの描画
-        /// </summary>
-        private void DrawTabBar()
-        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("KA Database Path:", GUILayout.Width(120));
+            kaDatabasePath = EditorGUILayout.TextField(kaDatabasePath);
+            if (GUILayout.Button("Browse", GUILayout.Width(60)))
+            {
+                var path = EditorUtility.OpenFolderPanel("Select KA Database Directory", "", "");
+                if (!string.IsNullOrEmpty(path))
+                {
+                    kaDatabasePath = path;
+                    LoadKADatabase();
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(10);
+
+            // タブ切り替え
             var newTab = GUILayout.Toolbar(selectedTab, tabs);
             if (newTab != selectedTab)
             {
                 selectedTab = newTab;
-                currentPage = 0;
+                currentPage = 0; // タブ切り替え時にページをリセット
             }
-            EditorGUILayout.Space(10);
-        }
 
-        /// <summary>
-        /// 検索フィールドの描画
-        /// </summary>
-        private void DrawSearchField()
-        {
+            EditorGUILayout.Space(10);
+
+            // 検索フィールド
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("Search:", GUILayout.Width(60));
             var newSearchQuery = EditorGUILayout.TextField(searchQuery);
             if (newSearchQuery != searchQuery)
             {
                 searchQuery = newSearchQuery;
-                currentPage = 0;
+                currentPage = 0; // 検索値が変更されたらページをリセット
             }
             EditorGUILayout.EndHorizontal();
-        }
 
-        /// <summary>
-        /// 検索結果件数の描画
-        /// </summary>
-        private void DrawSearchResultCount()
-        {
-            int totalItems = GetCurrentTabItemCount();
-            EditorGUILayout.LabelField($"検索結果: {totalItems}件");
             EditorGUILayout.Space(10);
-        }
 
-        /// <summary>
-        /// コンテンツエリアの描画
-        /// </summary>
-        private void DrawContentArea()
-        {
+            // スクロールビューとページネーションボタンのコンテナ
             GUILayout.BeginVertical();
-            DrawScrollView();
-            DrawPaginationButtons();
-            GUILayout.EndVertical();
-        }
 
-        /// <summary>
-        /// スクロールビューの描画
-        /// </summary>
-        private void DrawScrollView()
-        {
+            // スクロールビュー
             scrollPosition = EditorGUILayout.BeginScrollView(
                 scrollPosition,
                 GUILayout.ExpandHeight(true)
             );
-            DrawCurrentTabContent();
-            EditorGUILayout.EndScrollView();
-        }
-
-        /// <summary>
-        /// 現在のタブのコンテンツを描画
-        /// </summary>
-        private void DrawCurrentTabContent()
-        {
             switch (selectedTab)
             {
                 case 0:
@@ -268,13 +138,9 @@ namespace UnityEditorAssetBrowser
                     ShowWorldObjectsContent();
                     break;
             }
-        }
+            EditorGUILayout.EndScrollView();
 
-        /// <summary>
-        /// ページネーションボタンの描画
-        /// </summary>
-        private void DrawPaginationButtons()
-        {
+            // ページネーションボタン（スクロールビューの外）
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("前へ", GUILayout.Width(100)) && currentPage > 0)
             {
@@ -287,76 +153,59 @@ namespace UnityEditorAssetBrowser
                 currentPage++;
             }
             GUILayout.EndHorizontal();
-        }
-        #endregion
 
-        #region Helper Methods
-        /// <summary>
-        /// 現在のタブのアイテム数を取得
-        /// </summary>
-        /// <returns>アイテム数</returns>
-        private int GetCurrentTabItemCount()
-        {
-            switch (selectedTab)
+            GUILayout.EndVertical();
+            EditorGUILayout.EndVertical();
+
+            if (GUI.changed)
             {
-                case 0:
-                    return GetFilteredAvatars().Count;
-                case 1:
-                    return GetFilteredItems().Count;
-                case 2:
-                    return GetFilteredWorldObjects().Count;
-                default:
-                    return 0;
+                SaveSettings();
             }
         }
 
-        /// <summary>
-        /// カテゴリーがワールド関連かどうかを判定
-        /// </summary>
-        /// <param name="category">カテゴリー名</param>
-        /// <returns>ワールド関連の場合true</returns>
-        private bool IsWorldCategory(string category)
-        {
-            return category.Contains(WORLD_CATEGORY_JP, StringComparison.OrdinalIgnoreCase)
-                || category.Contains(WORLD_CATEGORY_EN, StringComparison.OrdinalIgnoreCase);
-        }
-        #endregion
-
-        /// <summary>
-        /// GUIスタイルの初期化
-        /// </summary>
-        private void InitializeStyles()
-        {
-            if (titleStyle == null)
-            {
-                titleStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 14,
-                    margin = new RectOffset(4, 4, 4, 4),
-                };
-            }
-
-            if (boxStyle == null)
-            {
-                boxStyle = new GUIStyle(EditorStyles.helpBox)
-                {
-                    padding = new RectOffset(10, 10, 10, 10),
-                    margin = new RectOffset(0, 0, 5, 5),
-                };
-            }
-        }
-
-        /// <summary>
-        /// アバターコンテンツの表示
-        /// </summary>
         private void ShowAvatarsContent()
         {
-            var filteredItems = GetFilteredAvatars();
+            var allItems = new List<object>();
+
+            // AEのアバター（type=0）を追加
+            if (aeDatabase?.Items != null)
+            {
+                allItems.AddRange(aeDatabase.Items.Where(item => item.Type == "0"));
+            }
+
+            // KAのアバターを追加
+            if (kaAvatarsDatabase?.data != null)
+            {
+                allItems.AddRange(kaAvatarsDatabase.data);
+            }
+
+            // 検索フィルター適用
+            var filteredItems = allItems
+                .Where(item =>
+                {
+                    if (string.IsNullOrEmpty(searchQuery))
+                        return true;
+
+                    if (item is AvatarExplorerItem aeItem)
+                        return aeItem.Title.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    if (item is KonoAssetAvatarItem kaItem)
+                        return kaItem.description.name.Contains(
+                            searchQuery,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+
+                    return false;
+                })
+                .ToList();
 
             // ページネーション
-            int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int startIndex = currentPage * ItemsPerPage;
+            int endIndex = Mathf.Min(startIndex + ItemsPerPage, filteredItems.Count);
+            var pageItems = filteredItems.Skip(startIndex).Take(ItemsPerPage);
 
             foreach (var item in pageItems)
             {
@@ -371,9 +220,6 @@ namespace UnityEditorAssetBrowser
             }
         }
 
-        /// <summary>
-        /// アバター関連アイテムコンテンツの表示
-        /// </summary>
         private void ShowItemsContent()
         {
             var allItems = new List<object>();
@@ -414,9 +260,9 @@ namespace UnityEditorAssetBrowser
                 .ToList();
 
             // ページネーション
-            int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int startIndex = currentPage * ItemsPerPage;
+            int endIndex = Mathf.Min(startIndex + ItemsPerPage, filteredItems.Count);
+            var pageItems = filteredItems.Skip(startIndex).Take(ItemsPerPage);
 
             foreach (var item in pageItems)
             {
@@ -431,35 +277,36 @@ namespace UnityEditorAssetBrowser
             }
         }
 
-        /// <summary>
-        /// ワールドオブジェクトコンテンツの表示
-        /// </summary>
         private void ShowWorldObjectsContent()
         {
-            var filteredItems = GetFilteredWorldObjects();
+            if (kaWorldObjectsDatabase?.data == null)
+                return;
+
+            // 検索フィルター適用
+            var filteredItems = kaWorldObjectsDatabase
+                .data.Where(item =>
+                    string.IsNullOrEmpty(searchQuery)
+                    || item.description.name.Contains(
+                        searchQuery,
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                )
+                .ToList();
 
             // ページネーション
-            int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int startIndex = currentPage * ItemsPerPage;
+            int endIndex = Mathf.Min(startIndex + ItemsPerPage, filteredItems.Count);
+            var pageItems = filteredItems.Skip(startIndex).Take(ItemsPerPage);
 
             foreach (var item in pageItems)
             {
-                if (item is AvatarExplorerItem aeItem)
-                {
-                    ShowAvatarItem(aeItem);
-                }
-                else if (item is KonoAssetWorldObjectItem worldItem)
+                if (item is KonoAssetWorldObjectItem worldItem)
                 {
                     ShowKonoAssetWorldObjectItem(worldItem);
                 }
             }
         }
 
-        /// <summary>
-        /// 総ページ数を取得
-        /// </summary>
-        /// <returns>総ページ数</returns>
         private int GetTotalPages()
         {
             int totalItems = 0;
@@ -475,83 +322,29 @@ namespace UnityEditorAssetBrowser
                     totalItems = GetFilteredWorldObjects().Count;
                     break;
             }
-            return Mathf.Max(1, Mathf.CeilToInt((float)totalItems / ITEMS_PER_PAGE));
+            return Mathf.Max(1, Mathf.CeilToInt((float)totalItems / ItemsPerPage));
         }
 
-        /// <summary>
-        /// フィルターされたアバターリストを取得
-        /// </summary>
-        /// <returns>フィルターされたアバターリスト</returns>
-        private List<object> GetFilteredAvatars()
+        private List<AvatarExplorerItem> GetFilteredAvatars()
         {
-            var items = new List<object>();
-
-            // AEのアバター（type=0）を追加
-            if (aeDatabase?.Items != null)
-            {
-                items.AddRange(aeDatabase.Items.Where(item => item.Type == "0"));
-            }
-
-            // KAのアバターを追加
-            if (kaAvatarsDatabase?.data != null)
-            {
-                items.AddRange(kaAvatarsDatabase.data);
-            }
-
+            var items = aeDatabase?.Items?.ToList() ?? new List<AvatarExplorerItem>();
             if (string.IsNullOrEmpty(searchQuery))
                 return items;
 
             return items
                 .Where(item =>
-                {
-                    if (item is AvatarExplorerItem aeItem)
-                    {
-                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
-                                >= 0
-                            || aeItem.AuthorName.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    else if (item is KonoAssetAvatarItem kaItem)
-                    {
-                        return kaItem.description.name.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0
-                            || kaItem.description.creator.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    return false;
-                })
+                    item.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
+                    || item.AuthorName.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase) >= 0
+                )
                 .ToList();
         }
 
-        /// <summary>
-        /// フィルターされたアイテムリストを取得
-        /// </summary>
-        /// <returns>フィルターされたアイテムリスト</returns>
         private List<object> GetFilteredItems()
         {
             var items = new List<object>();
             if (aeDatabase != null)
             {
-                // Type!=0 かつ CustomCategoryに"ワールド"または"world"が含まれていないアイテムを追加
-                items.AddRange(
-                    aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && !item.CustomCategory.Contains(
-                            "ワールド",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        && !item.CustomCategory.Contains(
-                            "world",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
-                );
+                items.AddRange(aeDatabase.Items);
             }
             if (kaWearablesDatabase != null)
             {
@@ -589,410 +382,408 @@ namespace UnityEditorAssetBrowser
                 .ToList();
         }
 
-        /// <summary>
-        /// フィルターされたワールドオブジェクトリストを取得
-        /// </summary>
-        /// <returns>フィルターされたワールドオブジェクトリスト</returns>
-        private List<object> GetFilteredWorldObjects()
+        private List<KonoAssetWorldObjectItem> GetFilteredWorldObjects()
         {
-            var items = new List<object>();
-
-            // AEのワールドアイテムを追加
-            if (aeDatabase?.Items != null)
-            {
-                items.AddRange(
-                    aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && (
-                            item.CustomCategory.Contains(
-                                "ワールド",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                            || item.CustomCategory.Contains(
-                                "world",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                    )
-                );
-            }
-
-            // KAのワールドオブジェクトを追加
-            if (kaWorldObjectsDatabase?.data != null)
-            {
-                items.AddRange(kaWorldObjectsDatabase.data);
-            }
-
+            var items = kaWorldObjectsDatabase?.data ?? new KonoAssetWorldObjectItem[0];
             if (string.IsNullOrEmpty(searchQuery))
-                return items;
+                return items.ToList();
 
             return items
                 .Where(item =>
-                {
-                    if (item is AvatarExplorerItem aeItem)
-                    {
-                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
-                                >= 0
-                            || aeItem.AuthorName.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    else if (item is KonoAssetWorldObjectItem kaItem)
-                    {
-                        return kaItem.description.name.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0
-                            || kaItem.description.creator.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    return false;
-                })
+                    item.description.name.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
+                        >= 0
+                    || item.description.creator.IndexOf(
+                        searchQuery,
+                        StringComparison.OrdinalIgnoreCase
+                    ) >= 0
+                )
                 .ToList();
         }
 
-        #region Item Display Methods
-        /// <summary>
-        /// AEアバターアイテムの表示
-        /// </summary>
-        /// <param name="item">表示するアイテム</param>
         private void ShowAvatarItem(AvatarExplorerItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            DrawItemHeader(item.Title, item.AuthorName, item.ImagePath, item.ItemPath);
-            DrawUnityPackageSection(item.ItemPath, item.Title);
-            GUILayout.EndVertical();
-        }
 
-        /// <summary>
-        /// KAアバターアイテムの表示
-        /// </summary>
-        /// <param name="item">表示するアイテム</param>
-        private void ShowKonoAssetItem(KonoAssetAvatarItem item)
-        {
-            GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
-            DrawItemHeader(
-                item.description.name,
-                item.description.creator,
-                item.description.imageFilename,
-                itemPath
-            );
-            DrawUnityPackageSection(itemPath, item.description.name);
-            GUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// KAウェアラブルアイテムの表示
-        /// </summary>
-        /// <param name="item">表示するアイテム</param>
-        private void ShowKonoAssetWearableItem(KonoAssetWearableItem item)
-        {
-            GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
-            DrawItemHeader(
-                item.description.name,
-                item.description.creator,
-                item.description.imageFilename,
-                itemPath
-            );
-            DrawItemDetails(item.category, item.supportedAvatars);
-            DrawUnityPackageSection(itemPath, item.description.name);
-            GUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// KAワールドオブジェクトアイテムの表示
-        /// </summary>
-        /// <param name="item">表示するアイテム</param>
-        private void ShowKonoAssetWorldObjectItem(KonoAssetWorldObjectItem item)
-        {
-            GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
-            DrawItemHeader(
-                item.description.name,
-                item.description.creator,
-                item.description.imageFilename,
-                itemPath
-            );
-            DrawItemDetails(item.category);
-            DrawUnityPackageSection(itemPath, item.description.name);
-            GUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// アイテムヘッダーの描画
-        /// </summary>
-        /// <param name="title">タイトル</param>
-        /// <param name="author">作者名</param>
-        /// <param name="imagePath">画像パス</param>
-        /// <param name="itemPath">アイテムパス</param>
-        private void DrawItemHeader(string title, string author, string imagePath, string itemPath)
-        {
+            // タイトルと画像
             GUILayout.BeginHorizontal();
-            DrawItemImage(imagePath);
+            if (!string.IsNullOrEmpty(item.ImagePath))
+            {
+                string imagePath;
+                if (item.ImagePath.StartsWith("Datas"))
+                {
+                    imagePath = Path.Combine(aeDatabasePath, item.ImagePath.Replace("Datas\\", ""));
+                }
+                else
+                {
+                    imagePath = item.ImagePath;
+                }
+
+                if (File.Exists(imagePath))
+                {
+                    var texture = LoadTexture(imagePath);
+                    if (texture != null)
+                    {
+                        GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
+                    }
+                }
+            }
             GUILayout.BeginVertical();
-            GUILayout.Label(title, EditorStyles.boldLabel);
-            GUILayout.Label($"作者: {author}");
-            DrawOpenButton(itemPath);
+            GUILayout.Label(item.Title, EditorStyles.boldLabel);
+            GUILayout.Label($"作者: {item.AuthorName}");
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
-        }
 
-        /// <summary>
-        /// アイテム画像の描画
-        /// </summary>
-        /// <param name="imagePath">画像パス</param>
-        private void DrawItemImage(string imagePath)
-        {
-            if (string.IsNullOrEmpty(imagePath))
-                return;
-
-            string fullImagePath = GetFullImagePath(imagePath);
-            if (File.Exists(fullImagePath))
+            // UnityPackageのトグル
+            if (!unityPackageFoldouts.ContainsKey(item.Title))
             {
-                var texture = LoadTexture(fullImagePath);
-                if (texture != null)
-                {
-                    GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
-                }
+                unityPackageFoldouts[item.Title] = false;
             }
-        }
-
-        /// <summary>
-        /// 完全な画像パスを取得
-        /// </summary>
-        /// <param name="imagePath">画像パス</param>
-        /// <returns>完全な画像パス</returns>
-        private string GetFullImagePath(string imagePath)
-        {
-            if (imagePath.StartsWith("Datas"))
-            {
-                return Path.Combine(aeDatabasePath, imagePath.Replace("Datas\\", ""));
-            }
-            return Path.Combine(kaDatabasePath, "images", imagePath);
-        }
-
-        /// <summary>
-        /// 開くボタンの描画
-        /// </summary>
-        /// <param name="itemPath">アイテムパス</param>
-        private void DrawOpenButton(string itemPath)
-        {
-            if (Directory.Exists(itemPath))
-            {
-                if (GUILayout.Button("開く", GUILayout.Width(150)))
-                {
-                    System.Diagnostics.Process.Start("explorer.exe", itemPath);
-                }
-            }
-        }
-
-        /// <summary>
-        /// アイテム詳細の描画
-        /// </summary>
-        /// <param name="category">カテゴリー</param>
-        /// <param name="supportedAvatars">対応アバター</param>
-        private void DrawItemDetails(string category, string[] supportedAvatars = null)
-        {
-            GUILayout.Label($"カテゴリー: {category}");
-            if (supportedAvatars != null && supportedAvatars.Length > 0)
-            {
-                GUILayout.Label($"対応アバター: {string.Join(", ", supportedAvatars)}");
-            }
-        }
-
-        /// <summary>
-        /// UnityPackageセクションの描画
-        /// </summary>
-        /// <param name="itemPath">アイテムパス</param>
-        /// <param name="itemName">アイテム名</param>
-        private void DrawUnityPackageSection(string itemPath, string itemName)
-        {
-            var unityPackages = DatabaseHelper.FindUnityPackages(itemPath);
-            if (!unityPackages.Any())
-                return;
-
-            if (!unityPackageFoldouts.ContainsKey(itemName))
-            {
-                unityPackageFoldouts[itemName] = false;
-            }
-            unityPackageFoldouts[itemName] = EditorGUILayout.Foldout(
-                unityPackageFoldouts[itemName],
+            unityPackageFoldouts[item.Title] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.Title],
                 "UnityPackage"
             );
 
-            if (unityPackageFoldouts[itemName])
+            if (unityPackageFoldouts[item.Title])
             {
+                var unityPackages = DatabaseHelper.FindUnityPackages(item.ItemPath);
                 foreach (var package in unityPackages)
                 {
-                    DrawUnityPackageItem(package);
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(Path.GetFileName(package));
+                    if (GUILayout.Button("インポート", GUILayout.Width(100)))
+                    {
+                        AssetDatabase.ImportPackage(package, true);
+                    }
+                    GUILayout.EndHorizontal();
                 }
             }
+
+            GUILayout.EndVertical();
         }
 
-        /// <summary>
-        /// UnityPackageアイテムの描画
-        /// </summary>
-        /// <param name="package">パッケージパス</param>
-        private void DrawUnityPackageItem(string package)
+        private void ShowKonoAssetItem(KonoAssetAvatarItem item)
         {
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+
+            // タイトルと画像
             GUILayout.BeginHorizontal();
-            GUILayout.Label(Path.GetFileName(package));
-            if (GUILayout.Button("インポート", GUILayout.Width(100)))
+            if (item.description.imageFilename != null)
             {
-                AssetDatabase.ImportPackage(package, true);
-            }
-            GUILayout.EndHorizontal();
-        }
-        #endregion
-
-        #region Database Loading Methods
-        /// <summary>
-        /// AEデータベースの読み込み
-        /// </summary>
-        private void LoadAEDatabase()
-        {
-            if (string.IsNullOrEmpty(aeDatabasePath))
-                return;
-
-            Debug.Log($"Loading AE database from: {aeDatabasePath}");
-            aeDatabase = DatabaseHelper.LoadAEDatabase(aeDatabasePath);
-            if (aeDatabase != null)
-            {
-                Debug.Log(
-                    $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
                 );
+                if (File.Exists(imagePath))
+                {
+                    var texture = LoadTexture(imagePath);
+                    if (texture != null)
+                    {
+                        GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
+                    }
+                }
             }
-        }
+            GUILayout.BeginVertical();
+            GUILayout.Label(item.description.name, EditorStyles.boldLabel);
+            GUILayout.Label($"作者: {item.description.creator}");
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
 
-        /// <summary>
-        /// KAデータベースの読み込み
-        /// </summary>
-        private void LoadKADatabase()
-        {
-            if (string.IsNullOrEmpty(kaDatabasePath))
-                return;
-
-            Debug.Log($"Loading KA database from: {kaDatabasePath}");
-            var metadataPath = Path.Combine(kaDatabasePath, "metadata");
-
-            if (!Directory.Exists(metadataPath))
+            // UnityPackageのトグル
+            if (!unityPackageFoldouts.ContainsKey(item.description.name))
             {
-                Debug.LogError($"Metadata directory not found at: {metadataPath}");
-                return;
+                unityPackageFoldouts[item.description.name] = false;
+            }
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
+
+            if (unityPackageFoldouts[item.description.name])
+            {
+                var dataPath = Path.Combine(kaDatabasePath, "data", item.id);
+                var unityPackages = DatabaseHelper.FindUnityPackages(dataPath);
+                foreach (var package in unityPackages)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(Path.GetFileName(package));
+                    if (GUILayout.Button("インポート", GUILayout.Width(100)))
+                    {
+                        AssetDatabase.ImportPackage(package, true);
+                    }
+                    GUILayout.EndHorizontal();
+                }
             }
 
-            LoadKADatabaseFile(metadataPath, "avatars.json", ref kaAvatarsDatabase);
-            LoadKADatabaseFile(metadataPath, "avatarWearables.json", ref kaWearablesDatabase);
-            LoadKADatabaseFile(metadataPath, "worldObjects.json", ref kaWorldObjectsDatabase);
+            GUILayout.EndVertical();
         }
 
-        /// <summary>
-        /// KAデータベースファイルの読み込み
-        /// </summary>
-        /// <typeparam name="T">データベースの型</typeparam>
-        /// <param name="metadataPath">メタデータパス</param>
-        /// <param name="filename">ファイル名</param>
-        /// <param name="database">データベース参照</param>
-        private void LoadKADatabaseFile<T>(string metadataPath, string filename, ref T database)
-            where T : class
+        private void ShowKonoAssetWearableItem(KonoAssetWearableItem item)
         {
-            var filePath = Path.Combine(metadataPath, filename);
-            if (!File.Exists(filePath))
-                return;
+            GUILayout.BeginVertical(EditorStyles.helpBox);
 
-            var baseDb = DatabaseHelper.LoadKADatabase(filePath);
-            if (baseDb == null)
-                return;
+            // タイトルと画像
+            GUILayout.BeginHorizontal();
+            if (item.description.imageFilename != null)
+            {
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
+                );
+                if (File.Exists(imagePath))
+                {
+                    var texture = LoadTexture(imagePath);
+                    if (texture != null)
+                    {
+                        GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
+                    }
+                }
+            }
+            GUILayout.BeginVertical();
+            GUILayout.Label(item.description.name, EditorStyles.boldLabel);
+            GUILayout.Label($"作者: {item.description.creator}");
+            GUILayout.Label($"カテゴリー: {item.category}");
+            if (item.supportedAvatars != null && item.supportedAvatars.Length > 0)
+            {
+                GUILayout.Label($"対応アバター: {string.Join(", ", item.supportedAvatars)}");
+            }
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
 
-            database = JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(baseDb));
+            // UnityPackageのトグル
+            if (!unityPackageFoldouts.ContainsKey(item.description.name))
+            {
+                unityPackageFoldouts[item.description.name] = false;
+            }
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
 
-            var itemCount = GetItemCount(database);
-            Debug.Log($"{filename} loaded successfully. Items count: {itemCount}");
+            if (unityPackageFoldouts[item.description.name])
+            {
+                var dataPath = Path.Combine(kaDatabasePath, "data", item.id);
+                var unityPackages = DatabaseHelper.FindUnityPackages(dataPath);
+                foreach (var package in unityPackages)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(Path.GetFileName(package));
+                    if (GUILayout.Button("インポート", GUILayout.Width(100)))
+                    {
+                        AssetDatabase.ImportPackage(package, true);
+                    }
+                    GUILayout.EndHorizontal();
+                }
+            }
+
+            GUILayout.EndVertical();
         }
 
-        /// <summary>
-        /// データベースのアイテム数を取得
-        /// </summary>
-        /// <typeparam name="T">データベースの型</typeparam>
-        /// <param name="database">データベース</param>
-        /// <returns>アイテム数</returns>
-        private int GetItemCount<T>(T database)
-            where T : class
+        private void ShowKonoAssetWorldObjectItem(KonoAssetWorldObjectItem item)
         {
-            if (database is KonoAssetAvatarsDatabase avatarsDb)
-                return avatarsDb.data.Length;
-            if (database is KonoAssetWearablesDatabase wearablesDb)
-                return wearablesDb.data.Length;
-            if (database is KonoAssetWorldObjectsDatabase worldObjectsDb)
-                return worldObjectsDb.data.Length;
-            return 0;
-        }
-        #endregion
+            GUILayout.BeginVertical(EditorStyles.helpBox);
 
-        #region Utility Methods
-        /// <summary>
-        /// テクスチャの読み込み
-        /// </summary>
-        /// <param name="path">テクスチャパス</param>
-        /// <returns>読み込んだテクスチャ</returns>
+            // タイトルと画像
+            GUILayout.BeginHorizontal();
+            if (item.description.imageFilename != null)
+            {
+                var imagePath = Path.Combine(
+                    kaDatabasePath,
+                    "images",
+                    item.description.imageFilename
+                );
+                if (File.Exists(imagePath))
+                {
+                    var texture = LoadTexture(imagePath);
+                    if (texture != null)
+                    {
+                        GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
+                    }
+                }
+            }
+            GUILayout.BeginVertical();
+            GUILayout.Label(item.description.name, EditorStyles.boldLabel);
+            GUILayout.Label($"作者: {item.description.creator}");
+            GUILayout.Label($"カテゴリー: {item.category}");
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+
+            // UnityPackageのトグル
+            if (!unityPackageFoldouts.ContainsKey(item.description.name))
+            {
+                unityPackageFoldouts[item.description.name] = false;
+            }
+            unityPackageFoldouts[item.description.name] = EditorGUILayout.Foldout(
+                unityPackageFoldouts[item.description.name],
+                "UnityPackage"
+            );
+
+            if (unityPackageFoldouts[item.description.name])
+            {
+                var dataPath = Path.Combine(kaDatabasePath, "data", item.id);
+                var unityPackages = DatabaseHelper.FindUnityPackages(dataPath);
+                foreach (var package in unityPackages)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(Path.GetFileName(package));
+                    if (GUILayout.Button("インポート", GUILayout.Width(100)))
+                    {
+                        AssetDatabase.ImportPackage(package, true);
+                    }
+                    GUILayout.EndHorizontal();
+                }
+            }
+
+            GUILayout.EndVertical();
+        }
+
         private Texture2D LoadTexture(string path)
         {
             if (string.IsNullOrEmpty(path))
                 return null;
-
             if (imageCache.TryGetValue(path, out var cachedTexture))
             {
                 return cachedTexture;
             }
 
-            if (!File.Exists(path))
-                return null;
-
-            try
+            if (File.Exists(path))
             {
-                var bytes = File.ReadAllBytes(path);
-                var texture = new Texture2D(2, 2);
-                if (UnityEngine.ImageConversion.LoadImage(texture, bytes))
+                try
                 {
-                    imageCache[path] = texture;
-                    return texture;
+                    var bytes = File.ReadAllBytes(path);
+                    var texture = new Texture2D(2, 2);
+                    if (UnityEngine.ImageConversion.LoadImage(texture, bytes))
+                    {
+                        imageCache[path] = texture;
+                        return texture;
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"Error loading texture from {path}: {ex.Message}");
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error loading texture from {path}: {ex.Message}");
+                }
             }
 
             return null;
         }
 
-        /// <summary>
-        /// 設定の読み込み
-        /// </summary>
+        private void LoadAEDatabase()
+        {
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+            {
+                Debug.Log($"Loading AE database from: {aeDatabasePath}");
+                aeDatabase = DatabaseHelper.LoadAEDatabase(aeDatabasePath);
+                if (aeDatabase != null)
+                {
+                    Debug.Log(
+                        $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
+                    );
+                }
+            }
+        }
+
+        private void LoadKADatabase()
+        {
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+            {
+                Debug.Log($"Loading KA database from: {kaDatabasePath}");
+                var metadataPath = Path.Combine(kaDatabasePath, "metadata");
+
+                if (!Directory.Exists(metadataPath))
+                {
+                    Debug.LogError($"Metadata directory not found at: {metadataPath}");
+                    return;
+                }
+
+                // アバターの読み込み
+                var avatarsPath = Path.Combine(metadataPath, "avatars.json");
+                if (File.Exists(avatarsPath))
+                {
+                    var baseDb = DatabaseHelper.LoadKADatabase(avatarsPath);
+                    if (baseDb != null)
+                    {
+                        kaAvatarsDatabase = new KonoAssetAvatarsDatabase
+                        {
+                            version = baseDb.version,
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetAvatarItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
+                        };
+                        Debug.Log(
+                            $"KA avatars loaded successfully. Items count: {kaAvatarsDatabase.data.Length}"
+                        );
+                    }
+                }
+
+                // ウェアラブルの読み込み
+                var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
+                if (File.Exists(wearablesPath))
+                {
+                    var baseDb = DatabaseHelper.LoadKADatabase(wearablesPath);
+                    if (baseDb != null)
+                    {
+                        kaWearablesDatabase = new KonoAssetWearablesDatabase
+                        {
+                            version = baseDb.version,
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetWearableItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
+                        };
+                        Debug.Log(
+                            $"KA wearables loaded successfully. Items count: {kaWearablesDatabase.data.Length}"
+                        );
+                    }
+                }
+
+                // ワールドオブジェクトの読み込み
+                var worldObjectsPath = Path.Combine(metadataPath, "worldObjects.json");
+                if (File.Exists(worldObjectsPath))
+                {
+                    var baseDb = DatabaseHelper.LoadKADatabase(worldObjectsPath);
+                    if (baseDb != null)
+                    {
+                        kaWorldObjectsDatabase = new KonoAssetWorldObjectsDatabase
+                        {
+                            version = baseDb.version,
+                            data = baseDb
+                                .data.Select(item =>
+                                    JsonConvert.DeserializeObject<KonoAssetWorldObjectItem>(
+                                        JsonConvert.SerializeObject(item)
+                                    )
+                                )
+                                .ToArray(),
+                        };
+                        Debug.Log(
+                            $"KA world objects loaded successfully. Items count: {kaWorldObjectsDatabase.data.Length}"
+                        );
+                    }
+                }
+            }
+        }
+
         private void LoadSettings()
         {
-            aeDatabasePath = EditorPrefs.GetString(AE_DATABASE_PATH_KEY, "");
-            kaDatabasePath = EditorPrefs.GetString(KA_DATABASE_PATH_KEY, "");
-
+            aeDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_AEDatabasePath", "");
+            kaDatabasePath = EditorPrefs.GetString("UnityEditorAssetBrowser_KADatabasePath", "");
             if (!string.IsNullOrEmpty(aeDatabasePath))
                 LoadAEDatabase();
             if (!string.IsNullOrEmpty(kaDatabasePath))
                 LoadKADatabase();
         }
 
-        /// <summary>
-        /// 設定の保存
-        /// </summary>
         private void SaveSettings()
         {
-            EditorPrefs.SetString(AE_DATABASE_PATH_KEY, aeDatabasePath);
-            EditorPrefs.SetString(KA_DATABASE_PATH_KEY, kaDatabasePath);
+            EditorPrefs.SetString("UnityEditorAssetBrowser_AEDatabasePath", aeDatabasePath);
+            EditorPrefs.SetString("UnityEditorAssetBrowser_KADatabasePath", kaDatabasePath);
         }
-        #endregion
     }
 }
