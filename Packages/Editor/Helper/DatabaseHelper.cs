@@ -9,12 +9,8 @@ using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Helper
 {
-    /// <summary>
-    /// データベース操作を支援するヘルパークラス
-    /// </summary>
     public static class DatabaseHelper
     {
-        #region Constants
         private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings
         {
             Formatting = Formatting.Indented,
@@ -22,14 +18,7 @@ namespace UnityEditorAssetBrowser.Helper
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             ObjectCreationHandling = ObjectCreationHandling.Replace,
         };
-        #endregion
 
-        #region AE Database Operations
-        /// <summary>
-        /// AEデータベースを読み込む
-        /// </summary>
-        /// <param name="path">データベースのパス</param>
-        /// <returns>読み込んだデータベース、失敗時はnull</returns>
         public static AvatarExplorerDatabase? LoadAEDatabase(string path)
         {
             try
@@ -61,11 +50,6 @@ namespace UnityEditorAssetBrowser.Helper
             }
         }
 
-        /// <summary>
-        /// AEデータベースを保存する
-        /// </summary>
-        /// <param name="path">保存先のパス</param>
-        /// <param name="data">保存するデータ</param>
         public static void SaveAEDatabase(string path, AvatarExplorerItem[] data)
         {
             try
@@ -80,14 +64,7 @@ namespace UnityEditorAssetBrowser.Helper
                 Debug.LogError($"Error saving AE database: {ex.Message}");
             }
         }
-        #endregion
 
-        #region KA Database Operations
-        /// <summary>
-        /// KAデータベースを読み込む
-        /// </summary>
-        /// <param name="path">データベースのパス</param>
-        /// <returns>読み込んだデータベース、失敗時はnull</returns>
         public static KonoAssetDatabase? LoadKADatabase(string path)
         {
             try
@@ -108,11 +85,6 @@ namespace UnityEditorAssetBrowser.Helper
             }
         }
 
-        /// <summary>
-        /// KAデータベースを保存する
-        /// </summary>
-        /// <param name="path">保存先のパス</param>
-        /// <param name="database">保存するデータベース</param>
         public static void SaveKADatabase(string path, KonoAssetDatabase database)
         {
             try
@@ -123,6 +95,7 @@ namespace UnityEditorAssetBrowser.Helper
                     Directory.CreateDirectory(metadataPath);
                 }
 
+                // ウェアラブルアイテムの保存
                 var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
                 var wearablesJson = JsonConvert.SerializeObject(database, JsonSettings);
                 File.WriteAllText(wearablesPath, wearablesJson);
@@ -134,14 +107,7 @@ namespace UnityEditorAssetBrowser.Helper
                 Debug.LogError($"Error saving KA database: {ex.Message}");
             }
         }
-        #endregion
 
-        #region Utility Methods
-        /// <summary>
-        /// 指定されたディレクトリ内のUnityPackageファイルを検索する
-        /// </summary>
-        /// <param name="directory">検索対象のディレクトリ</param>
-        /// <returns>見つかったUnityPackageファイルのパス配列</returns>
         public static string[] FindUnityPackages(string directory)
         {
             if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
@@ -151,6 +117,5 @@ namespace UnityEditorAssetBrowser.Helper
 
             return Directory.GetFiles(directory, "*.unitypackage", SearchOption.AllDirectories);
         }
-        #endregion
     }
 }
