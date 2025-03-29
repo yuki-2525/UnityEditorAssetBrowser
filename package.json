@@ -1,0 +1,11 @@
+{
+    "name": "com.yuki-2525.unityeditorassetbrowser",
+    "displayName": "Unity Editor Asset Browser",
+    "version": "1.0.0",
+    "author": {
+        "name": "yuki-2525",
+        "email": "2525sakurayuki@gmail.com"
+    },
+    "description": "AvatarExplorerとKonoAssetのデータベースを統合して表示するUnity Editor拡張",
+    "url": "https://github.com/yuki-2525/UnityEditorAssetBrowser.zip"
+}
