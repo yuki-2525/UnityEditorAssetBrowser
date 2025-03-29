@@ -2,6 +2,8 @@ name: Build Release
 
 on: 
   workflow_dispatch:
+  push:
+    branches: "main"
 
 jobs:
 
@@ -18,18 +20,16 @@ jobs:
       run: |
           echo "configPackage=true" >> $GITHUB_OUTPUT;
 
-  # Build and release the Package
-  # If the repository is not configured properly, this job will be skipped
-  build:
+  # Get Version
+  GetTargetVersion:
     needs: config
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    outputs:
+      TargetVersion: ${{ steps.version.outputs.value }}
+      TagExist: ${{ steps.contains_tag.outputs.retval }}
     env:
       packagePath: .
-    if: needs.config.outputs.config_package == 'true'
     steps:
-
       # Checkout Local Repository
       - name: Checkout
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
@@ -41,29 +41,52 @@ jobs:
         with: 
             file_path: "${{ env.packagePath }}/package.json"
             prop_path: "version"
-    
-      # Configure the Environment Variables needed for releasing the Package
-      - name: Set Environment Variables
+
+      # Check Exist
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: rickstaa/action-contains-tag@v1
+        id: contains_tag
+        with:
+          reference: "main"
+          tag: "${{ steps.version.outputs.value }}"
+          frail: false
+
+  # Build and release the Package
+  # If the repository is not configured properly, this job will be skipped
+  build:
+    needs: GetTargetVersion
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      packagePath: .
+    if: always() && (needs.GetTargetVersion.outputs.TagExist == 'false')
+    steps:
+
+      # Checkout Local Repository
+      - name: Checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+
+      #Configure the Environment Variables needed for releasing the Package
+      - name : Set Environment Variables1
         run: |
-          echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
-          echo "unityPackage=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
-          echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
+           echo "version=${{ needs.GetTargetVersion.outputs.TargetVersion }}" >> $GITHUB_ENV
+           echo "RepoName=${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}" >> $GITHUB_ENV
+
+      - name : Set Environment Variables2
+        run: |
+           echo "zipFile=${{ env.RepoName }}-${{ env.version }}".zip >> $GITHUB_ENV
 
       # Zip the Package for release
       - name: Create Package Zip
         working-directory: "${{ env.packagePath }}"
-        run: zip -r "${{ github.workspace }}/${{ env.zipFile }}" .
+        run: zip "${{ github.workspace }}/${{ env.zipFile }}" ./* -r -x .github .git '.git/*' '*~/*' '*.ps1*'
       
       # Build a list of .meta files for future use
       - name: Track Package Meta Files
         run: find "${{ env.packagePath }}/" -name \*.meta >> metaList
-      
-      # Make a UnityPackage version of the Package for release
-      - name: Create UnityPackage
-        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
-        with:
-          package-path: ${{ env.unityPackage }}
-          include-files: metaList
       
       # Make a release tag of the version from the package.json file 
       - name: Create Tag
@@ -78,6 +101,15 @@ jobs:
         with:
           files: |
             ${{ env.zipFile }}
-            ${{ env.unityPackage }}
             ${{ env.packagePath }}/package.json
           tag_name: ${{ env.version }}
+
+      - name: Update Website
+        run: |
+          TOKEN=${{ secrets.TOKEN }}
+          curl \
+            -X POST \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/yuki-2525/vpm/dispatches \
+            -d '{"event_type":"automatic-web-update","client_payload":{"env": "dev"}}'
