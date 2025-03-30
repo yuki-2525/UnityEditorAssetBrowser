@@ -14,8 +14,10 @@
 1. Unity Editorのメニューから「Window > Unity Editor Asset Browser」を選択してウィンドウを開きます。
 
 2. データベースパスの設定
-   - AE Database Path: Avatar Explorerのデータフォルダを選択 例：C:\VRC-Avatar-Explorer\Datas
-   - KA Database Path: KonoAssetのデータフォルダを選択 例：C:\KonoAssetData
+   - AE Database Path: Avatar Explorerのデータフォルダを選択
+     - 例：`C:\VRC-Avatar-Explorer\Datas`
+   - KA Database Path: KonoAssetのデータフォルダを選択
+     - 例：`C:\KonoAssetData`
 
 3. タブの切り替え
    - アバター: Avatar Explorerの「アバター」とKonoAssetの「アバター素体」を表示
@@ -39,6 +41,12 @@
 
 ### 謝辞
 
-素晴らしいアセット管理ツールを開発していただいた、Avatar Explorer開発者のぷこるふさん、silonecoさんをはじめとするKonoAsset開発チームのみなさんに感謝申し上げます。
-このプロジェクトは[AE-Tools](https://github.com/puk06/AE-Tools)のコードを一部借用しています。MIT Licenseに基づいて使用しています。
-このプロジェクトは[AssetLibraryManager](https://github.com/MAIOTAchannel/AssetLibraryManager)のコードを一部借用しています。MAIOTAchannel様の許可を得て使用しています。
+素晴らしいアセット管理ツールを開発していただいた、以下の方々に感謝申し上げます：
+
+- Avatar Explorer開発者のぷこるふさん
+- silonecoさんをはじめとするKonoAsset開発チームのみなさん
+
+また、以下のプロジェクトのコードを一部借用しています：
+
+- [AE-Tools](https://github.com/puk06/AE-Tools) - MIT Licenseに基づいて使用
+- [AssetLibraryManager](https://github.com/MAIOTAchannel/AssetLibraryManager) - MAIOTAchannel様の許可を得て使用
