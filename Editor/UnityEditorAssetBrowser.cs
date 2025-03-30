@@ -1,3 +1,7 @@
+// Copyright (c) 2025 yuki-2525
+// This code is borrowed from AssetLibraryManager (https://github.com/MAIOTAchannel/AssetLibraryManager)
+// Used with permission from MAIOTAchannel
+
 using System;
 using System.Collections.Generic;
 using System.IO;
