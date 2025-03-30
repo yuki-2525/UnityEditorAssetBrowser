@@ -1,3 +1,7 @@
+// Copyright (c) 2025 yuki-2525
+// This code is borrowed from AvatarExplorer(https://github.com/yuki-2525/AvatarExplorer)
+// AvatarExplorer is licensed under the MIT License. https://github.com/yuki-2525/AvatarExplorer/blob/main/LICENSE
+
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;

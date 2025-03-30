@@ -1,44 +1,44 @@
 # Unity Editor Asset Browser
 
-Unity Editor用のアセットデータベースビューワーです。Avatar ExplorerとKonoAssetのデータベースを統合して表示・管理できます。
+[Avatar Explorer](https://booth.pm/ja/items/6372968)と[KonoAsset](https://silolab.booth.pm/items/6641548)によって保存されているアイテムを表示し、簡単にインポートすることが出来るエディタ拡張です。
 
 ## 機能
 
-- Avatar ExplorerとKonoAssetのデータベースを統合表示
+- [Avatar Explorer](https://booth.pm/ja/items/6372968)と[KonoAsset](https://silolab.booth.pm/items/6641548)のアイテムを統合表示
 - アバター、アバター関連アイテム、ワールドオブジェクトの3つのタブで表示
 - 検索機能によるアイテムのフィルタリング
-- ページネーションによる大量のアイテムの表示
 - UnityPackageのインポート機能
-- 画像のプレビュー表示
 
 ## 使い方
 
 1. Unity Editorのメニューから「Window > Unity Editor Asset Browser」を選択してウィンドウを開きます。
 
 2. データベースパスの設定
-   - AE Database Path: Avatar Explorerのデータベースフォルダを選択
-   - KA Database Path: KonoAssetのデータベースフォルダを選択
+   - AE Database Path: Avatar Explorerのデータフォルダを選択 例：C:\VRC-Avatar-Explorer\Datas
+   - KA Database Path: KonoAssetのデータフォルダを選択 例：C:\KonoAssetData
 
 3. タブの切り替え
-   - アバター: Avatar ExplorerのアバターとKonoAssetのアバターを表示
-   - アバター関連: Avatar ExplorerのアイテムとKonoAssetのウェアラブルを表示
-   - ワールド: KonoAssetのワールドオブジェクトを表示
+   - アバター: Avatar Explorerの「アバター」とKonoAssetの「アバター素体」を表示
+   - アバター関連: Avatar ExplorerのほとんどのアイテムとKonoAssetの「アバター関連アセット」を表示
+   - ワールド: Avatar Explorerのカスタムカテゴリ名に「ワールド」「world」が含まれているアイテムとKonoAssetの「ワールドアセット」を表示
 
 4. アイテムの表示
    - 各アイテムは画像、タイトル、作者情報を表示
    - UnityPackageがある場合は「UnityPackage」セクションでインポート可能
 
 5. 検索機能
-   - 検索フィールドにキーワードを入力すると、タイトルでフィルタリングされます
-
-6. ページネーション
-   - 「前へ」「次へ」ボタンでページを切り替え
-   - 現在のページ番号と総ページ数を表示
+   - 検索フィールドにキーワードを入力すると、タイトル・作者名でフィルタリングされます
 
 ## 注意事項
 
-- Avatar Explorerの画像パスは以下のように処理されます：
-  - "Datas"で始まるパス: `{aeDatabasePath}\\{パス}`として処理
-  - それ以外のパス: そのままのパスとして使用
-
 - データベースパスは自動的に保存され、次回起動時に復元されます
+
+## ライセンス
+
+このプロジェクトは[MITライセンス](LICENSE)の下で公開されています。
+
+### 謝辞
+
+素晴らしいアセット管理ツールを開発していただいた、Avatar Explorer開発者のぷこるふさん、silonecoさんをはじめとするKonoAsset開発チームのみなさんに感謝申し上げます。
+このプロジェクトは[AE-Tools](https://github.com/puk06/AE-Tools)のコードを一部借用しています。MIT Licenseに基づいて使用しています。
+このプロジェクトは[AssetLibraryManager](https://github.com/MAIOTAchannel/AssetLibraryManager)のコードを一部借用しています。MAIOTAchannel様の許可を得て使用しています。
