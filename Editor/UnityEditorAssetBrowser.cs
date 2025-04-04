@@ -169,12 +169,34 @@ namespace UnityEditorAssetBrowser
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField(label, GUILayout.Width(120));
-            var newPath = EditorGUILayout.TextField(path);
-            if (newPath != path)
+
+            // パスを編集不可のテキストフィールドとして表示
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField(path);
+            EditorGUI.EndDisabledGroup();
+
+            // 削除ボタンを追加（Browseボタンの左に配置）
+            if (!string.IsNullOrEmpty(path) && GUILayout.Button("削除", GUILayout.Width(60)))
             {
-                path = newPath;
+                path = "";
                 onPathChanged();
+
+                // データベースオブジェクトも削除
+                if (label == "AE Database Path:")
+                {
+                    aeDatabase = null;
+                }
+                else if (label == "KA Database Path:")
+                {
+                    kaAvatarsDatabase = null;
+                    kaWearablesDatabase = null;
+                    kaWorldObjectsDatabase = null;
+                }
+
+                // ページをリセット
+                currentPage = 0;
             }
+
             if (GUILayout.Button("Browse", GUILayout.Width(60)))
             {
                 var selectedPath = EditorUtility.OpenFolderPanel(
@@ -188,6 +210,7 @@ namespace UnityEditorAssetBrowser
                     onPathChanged();
                 }
             }
+
             EditorGUILayout.EndHorizontal();
         }
 

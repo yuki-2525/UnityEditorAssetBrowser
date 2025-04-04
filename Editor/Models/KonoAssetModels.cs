@@ -93,7 +93,7 @@ namespace UnityEditorAssetBrowser.Models
         public int? boothItemId { get; set; }
         public string[] dependencies { get; set; } = Array.Empty<string>();
         public long createdAt { get; set; }
-        public long publishedAt { get; set; }
+        public long? publishedAt { get; set; }
     }
     #endregion
 }
