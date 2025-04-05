@@ -2,6 +2,8 @@
 // This code is borrowed from AETools(https://github.com/puk06/AE-Tools)
 // AETools is licensed under the MIT License. https://github.com/puk06/AE-Tools/blob/master/LICENSE.txt
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -41,7 +43,7 @@ namespace UnityEditorAssetBrowser.Helper
                 var jsonPath = Path.Combine(path, "ItemsData.json");
                 if (!File.Exists(jsonPath))
                 {
-                    Debug.LogError($"ItemsData.json not found at: {jsonPath}");
+                    Debug.LogWarning($"ItemsData.json not found at: {jsonPath}");
                     return null;
                 }
 
@@ -51,7 +53,7 @@ namespace UnityEditorAssetBrowser.Helper
 
                 if (items == null)
                 {
-                    Debug.LogError("Failed to deserialize AE database");
+                    Debug.LogWarning("Failed to deserialize AE database");
                     return null;
                 }
 
@@ -60,7 +62,7 @@ namespace UnityEditorAssetBrowser.Helper
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error loading AE database: {ex.Message}");
+                Debug.LogWarning($"Error loading AE database: {ex.Message}");
                 return null;
             }
         }
@@ -81,7 +83,7 @@ namespace UnityEditorAssetBrowser.Helper
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error saving AE database: {ex.Message}");
+                Debug.LogWarning($"Error saving AE database: {ex.Message}");
             }
         }
         #endregion
@@ -98,7 +100,7 @@ namespace UnityEditorAssetBrowser.Helper
             {
                 if (!File.Exists(path))
                 {
-                    Debug.LogError($"File not found: {path}");
+                    Debug.LogWarning($"File not found: {path}");
                     return null;
                 }
 
@@ -107,7 +109,7 @@ namespace UnityEditorAssetBrowser.Helper
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error loading KA database from {path}: {ex.Message}");
+                Debug.LogWarning($"Error loading KA database from {path}: {ex.Message}");
                 return null;
             }
         }
@@ -135,7 +137,7 @@ namespace UnityEditorAssetBrowser.Helper
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error saving KA database: {ex.Message}");
+                Debug.LogWarning($"Error saving KA database: {ex.Message}");
             }
         }
         #endregion

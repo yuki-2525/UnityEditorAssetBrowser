@@ -2,6 +2,8 @@
 // This code is borrowed from AssetLibraryManager (https://github.com/MAIOTAchannel/AssetLibraryManager)
 // Used with permission from MAIOTAchannel
 
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -73,9 +75,6 @@ namespace UnityEditorAssetBrowser
         /// <summary>タブのラベル</summary>
         private string[] tabs = { "アバター", "アバター関連", "ワールド" };
 
-        /// <summary>デバッグ情報の表示フラグ</summary>
-        private bool showDebugInfo = false;
-
         /// <summary>フォールドアウト状態の管理</summary>
         private Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
@@ -83,19 +82,16 @@ namespace UnityEditorAssetBrowser
         private Dictionary<string, Texture2D> imageCache = new Dictionary<string, Texture2D>();
 
         /// <summary>タイトル用のスタイル</summary>
-        private GUIStyle titleStyle;
+        private GUIStyle? titleStyle;
 
         /// <summary>ボックス用のスタイル</summary>
-        private GUIStyle boxStyle;
+        private GUIStyle? boxStyle;
 
         /// <summary>現在のページ番号</summary>
         private int currentPage = 0;
 
         /// <summary>UnityPackageのフォールドアウト状態の管理</summary>
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
-
-        /// <summary>前回の検索クエリ</summary>
-        private string lastSearchQuery = "";
         #endregion
 
         #region Unity Editor Window Methods
@@ -114,6 +110,27 @@ namespace UnityEditorAssetBrowser
         private void OnEnable()
         {
             LoadSettings();
+
+            // シーン変更時に自動的に更新を実行
+            EditorApplication.hierarchyChanged += OnHierarchyChanged;
+        }
+
+        /// <summary>
+        /// ウィンドウが無効になった時の処理
+        /// </summary>
+        private void OnDisable()
+        {
+            // イベントの解除
+            EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+        }
+
+        /// <summary>
+        /// シーン階層が変更された時の処理
+        /// </summary>
+        private void OnHierarchyChanged()
+        {
+            // 画像キャッシュを更新
+            RefreshImageCache();
         }
 
         /// <summary>
@@ -156,6 +173,17 @@ namespace UnityEditorAssetBrowser
         {
             DrawDatabasePathField("AE Database Path:", ref aeDatabasePath, LoadAEDatabase);
             DrawDatabasePathField("KA Database Path:", ref kaDatabasePath, LoadKADatabase);
+
+            // リフレッシュボタンを追加（一つにまとめる）
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("更新", GUILayout.Width(150)))
+            {
+                RefreshDatabases();
+                RefreshImageCache();
+            }
+            EditorGUILayout.EndHorizontal();
+
             EditorGUILayout.Space(10);
         }
 
@@ -823,7 +851,7 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         /// <param name="category">カテゴリー</param>
         /// <param name="supportedAvatars">対応アバター</param>
-        private void DrawItemDetails(string category, string[] supportedAvatars = null)
+        private void DrawItemDetails(string category, string[]? supportedAvatars = null)
         {
             GUILayout.Label($"カテゴリー: {category}");
             if (supportedAvatars != null && supportedAvatars.Length > 0)
@@ -847,18 +875,68 @@ namespace UnityEditorAssetBrowser
             {
                 unityPackageFoldouts[itemName] = false;
             }
-            unityPackageFoldouts[itemName] = EditorGUILayout.Foldout(
-                unityPackageFoldouts[itemName],
-                "UnityPackage"
+
+            // 枠の開始位置を記録
+            var startRect = EditorGUILayout.GetControlRect(false, 0);
+            var startY = startRect.y;
+
+            // 行全体をクリック可能にするためのボックスを作成
+            var boxRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+            var foldoutRect = new Rect(
+                boxRect.x,
+                boxRect.y,
+                EditorGUIUtility.singleLineHeight,
+                boxRect.height
             );
+            var labelRect = new Rect(
+                boxRect.x + EditorGUIUtility.singleLineHeight,
+                boxRect.y,
+                boxRect.width - EditorGUIUtility.singleLineHeight,
+                boxRect.height
+            );
+
+            // フォールドアウトの状態を更新
+            if (
+                Event.current.type == EventType.MouseDown
+                && boxRect.Contains(Event.current.mousePosition)
+            )
+            {
+                unityPackageFoldouts[itemName] = !unityPackageFoldouts[itemName];
+                GUI.changed = true;
+                Event.current.Use();
+            }
+
+            // フォールドアウトとラベルを描画
+            unityPackageFoldouts[itemName] = EditorGUI.Foldout(
+                foldoutRect,
+                unityPackageFoldouts[itemName],
+                ""
+            );
+            EditorGUI.LabelField(labelRect, "UnityPackage");
 
             if (unityPackageFoldouts[itemName])
             {
+                EditorGUI.indentLevel++;
                 foreach (var package in unityPackages)
                 {
                     DrawUnityPackageItem(package);
                 }
+                EditorGUI.indentLevel--;
             }
+
+            // 枠の終了位置を取得
+            var endRect = GUILayoutUtility.GetLastRect();
+            var endY = endRect.y + endRect.height;
+
+            // 枠を描画
+            var frameRect = new Rect(
+                startRect.x,
+                startY,
+                EditorGUIUtility.currentViewWidth - 20,
+                endY - startY + 10
+            );
+            EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+            GUI.Box(frameRect, "", EditorStyles.helpBox);
         }
 
         /// <summary>
@@ -894,6 +972,19 @@ namespace UnityEditorAssetBrowser
                     $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
                 );
             }
+            else
+            {
+                // エラーポップアップを表示
+                EditorUtility.DisplayDialog(
+                    "パスエラー",
+                    "入力したパスが誤っています\n\n\"VRC-Avatar-Explorer-v○○/Data\"\nを指定してください",
+                    "OK"
+                );
+
+                // パスを空欄に戻す
+                aeDatabasePath = "";
+                SaveSettings();
+            }
         }
 
         /// <summary>
@@ -909,7 +1000,18 @@ namespace UnityEditorAssetBrowser
 
             if (!Directory.Exists(metadataPath))
             {
-                Debug.LogError($"Metadata directory not found at: {metadataPath}");
+                Debug.LogWarning($"Metadata directory not found at: {metadataPath}");
+
+                // エラーポップアップを表示
+                EditorUtility.DisplayDialog(
+                    "パスエラー",
+                    "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください",
+                    "OK"
+                );
+
+                // パスを空欄に戻す
+                kaDatabasePath = "";
+                SaveSettings();
                 return;
             }
 
@@ -925,7 +1027,7 @@ namespace UnityEditorAssetBrowser
         /// <param name="metadataPath">メタデータパス</param>
         /// <param name="filename">ファイル名</param>
         /// <param name="database">データベース参照</param>
-        private void LoadKADatabaseFile<T>(string metadataPath, string filename, ref T database)
+        private void LoadKADatabaseFile<T>(string metadataPath, string filename, ref T? database)
             where T : class
         {
             var filePath = Path.Combine(metadataPath, filename);
@@ -948,7 +1050,7 @@ namespace UnityEditorAssetBrowser
         /// <typeparam name="T">データベースの型</typeparam>
         /// <param name="database">データベース</param>
         /// <returns>アイテム数</returns>
-        private int GetItemCount<T>(T database)
+        private int GetItemCount<T>(T? database)
             where T : class
         {
             if (database is KonoAssetAvatarsDatabase avatarsDb)
@@ -963,11 +1065,11 @@ namespace UnityEditorAssetBrowser
 
         #region Utility Methods
         /// <summary>
-        /// テクスチャの読み込み
+        /// テクスチャを読み込む
         /// </summary>
         /// <param name="path">テクスチャパス</param>
         /// <returns>読み込んだテクスチャ</returns>
-        private Texture2D LoadTexture(string path)
+        private Texture2D? LoadTexture(string path)
         {
             if (string.IsNullOrEmpty(path))
                 return null;
@@ -992,7 +1094,7 @@ namespace UnityEditorAssetBrowser
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error loading texture from {path}: {ex.Message}");
+                Debug.LogWarning($"Error loading texture from {path}: {ex.Message}");
             }
 
             return null;
@@ -1019,6 +1121,107 @@ namespace UnityEditorAssetBrowser
         {
             EditorPrefs.SetString(AE_DATABASE_PATH_KEY, aeDatabasePath);
             EditorPrefs.SetString(KA_DATABASE_PATH_KEY, kaDatabasePath);
+        }
+
+        /// <summary>
+        /// データベースを再読み込みする
+        /// </summary>
+        private void RefreshDatabases()
+        {
+            Debug.Log("Refreshing databases...");
+
+            // 画像キャッシュをクリア
+            imageCache.Clear();
+
+            // データベースを再読み込み
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+            {
+                LoadAEDatabase();
+            }
+
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+            {
+                LoadKADatabase();
+            }
+
+            // ページをリセット
+            currentPage = 0;
+
+            Debug.Log("Databases refreshed successfully.");
+        }
+
+        /// <summary>
+        /// 画像キャッシュを再取得する
+        /// </summary>
+        private void RefreshImageCache()
+        {
+            Debug.Log("Refreshing image cache...");
+
+            // 画像キャッシュをクリア
+            imageCache.Clear();
+
+            // 現在表示中のアイテムの画像を再読み込み
+            var currentItems = GetCurrentTabItems();
+            foreach (var item in currentItems)
+            {
+                string imagePath = GetItemImagePath(item);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    string fullImagePath = GetFullImagePath(imagePath);
+                    if (File.Exists(fullImagePath))
+                    {
+                        LoadTexture(fullImagePath);
+                    }
+                }
+            }
+
+            Debug.Log("Image cache refreshed successfully.");
+        }
+
+        /// <summary>
+        /// 現在のタブのアイテムを取得
+        /// </summary>
+        /// <returns>現在のタブのアイテムリスト</returns>
+        private List<object> GetCurrentTabItems()
+        {
+            switch (selectedTab)
+            {
+                case 0:
+                    return GetFilteredAvatars();
+                case 1:
+                    return GetFilteredItems();
+                case 2:
+                    return GetFilteredWorldObjects();
+                default:
+                    return new List<object>();
+            }
+        }
+
+        /// <summary>
+        /// アイテムの画像パスを取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>画像パス</returns>
+        private string GetItemImagePath(object item)
+        {
+            if (item is AvatarExplorerItem aeItem)
+            {
+                return aeItem.ImagePath;
+            }
+            else if (item is KonoAssetAvatarItem kaItem)
+            {
+                return kaItem.description.imageFilename;
+            }
+            else if (item is KonoAssetWearableItem wearableItem)
+            {
+                return wearableItem.description.imageFilename;
+            }
+            else if (item is KonoAssetWorldObjectItem worldItem)
+            {
+                return worldItem.description.imageFilename;
+            }
+
+            return string.Empty;
         }
         #endregion
     }
