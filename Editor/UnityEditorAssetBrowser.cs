@@ -97,6 +97,42 @@ namespace UnityEditorAssetBrowser
 
         /// <summary>UnityPackageのフォールドアウト状態の管理</summary>
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
+
+        /// <summary>ソート方法の列挙型</summary>
+        private enum SortMethod
+        {
+            /// <summary>追加順（新しい順）</summary>
+            CreatedDateDesc,
+
+            /// <summary>追加順（古い順）</summary>
+            CreatedDateAsc,
+
+            /// <summary>アセット名（A-Z順）</summary>
+            TitleAsc,
+
+            /// <summary>アセット名（Z-A順）</summary>
+            TitleDesc,
+
+            /// <summary>ショップ名（A-Z順）</summary>
+            AuthorAsc,
+
+            /// <summary>ショップ名（Z-A順）</summary>
+            AuthorDesc,
+        }
+
+        /// <summary>現在のソート方法</summary>
+        private SortMethod currentSortMethod = SortMethod.CreatedDateDesc;
+
+        /// <summary>ソート方法のラベル</summary>
+        private string[] sortLabels =
+        {
+            "追加順（新しい順）",
+            "追加順（古い順）",
+            "アセット名（A-Z順）",
+            "アセット名（Z-A順）",
+            "ショップ名（A-Z順）",
+            "ショップ名（Z-A順）",
+        };
         #endregion
 
         #region Unity Editor Window Methods
@@ -267,14 +303,63 @@ namespace UnityEditorAssetBrowser
         private void DrawSearchField()
         {
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Search:", GUILayout.Width(60));
+            EditorGUILayout.LabelField("検索:", GUILayout.Width(60));
             var newSearchQuery = EditorGUILayout.TextField(searchQuery);
             if (newSearchQuery != searchQuery)
             {
                 searchQuery = newSearchQuery;
                 currentPage = 0;
             }
+
+            // ソートボタンを追加
+            if (GUILayout.Button("▼ 表示順", GUILayout.Width(80)))
+            {
+                var menu = new GenericMenu();
+                menu.AddItem(
+                    new GUIContent("追加順（新しい順）"),
+                    currentSortMethod == SortMethod.CreatedDateDesc,
+                    () => SetSortMethod(SortMethod.CreatedDateDesc)
+                );
+                menu.AddItem(
+                    new GUIContent("追加順（古い順）"),
+                    currentSortMethod == SortMethod.CreatedDateAsc,
+                    () => SetSortMethod(SortMethod.CreatedDateAsc)
+                );
+                menu.AddItem(
+                    new GUIContent("アセット名（A-Z順）"),
+                    currentSortMethod == SortMethod.TitleAsc,
+                    () => SetSortMethod(SortMethod.TitleAsc)
+                );
+                menu.AddItem(
+                    new GUIContent("アセット名（Z-A順）"),
+                    currentSortMethod == SortMethod.TitleDesc,
+                    () => SetSortMethod(SortMethod.TitleDesc)
+                );
+                menu.AddItem(
+                    new GUIContent("ショップ名（A-Z順）"),
+                    currentSortMethod == SortMethod.AuthorAsc,
+                    () => SetSortMethod(SortMethod.AuthorAsc)
+                );
+                menu.AddItem(
+                    new GUIContent("ショップ名（Z-A順）"),
+                    currentSortMethod == SortMethod.AuthorDesc,
+                    () => SetSortMethod(SortMethod.AuthorDesc)
+                );
+                menu.ShowAsContext();
+            }
             EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// ソート方法を設定
+        /// </summary>
+        private void SetSortMethod(SortMethod method)
+        {
+            if (currentSortMethod != method)
+            {
+                currentSortMethod = method;
+                currentPage = 0;
+            }
         }
 
         /// <summary>
@@ -412,11 +497,12 @@ namespace UnityEditorAssetBrowser
         private void ShowAvatarsContent()
         {
             var filteredItems = GetFilteredAvatars();
+            var sortedItems = SortItems(filteredItems);
 
             // ページネーション
             int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, sortedItems.Count);
+            var pageItems = sortedItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
 
             foreach (var item in pageItems)
             {
@@ -436,47 +522,13 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void ShowItemsContent()
         {
-            var allItems = new List<object>();
-
-            // AEのアイテム（type≠0）を追加
-            if (aeDatabase?.Items != null)
-            {
-                allItems.AddRange(aeDatabase.Items.Where(item => item.Type != "0"));
-            }
-
-            // KAのウェアラブルを追加
-            if (kaWearablesDatabase?.data != null)
-            {
-                allItems.AddRange(kaWearablesDatabase.data);
-            }
-
-            // 検索フィルター適用
-            var filteredItems = allItems
-                .Where(item =>
-                {
-                    if (string.IsNullOrEmpty(searchQuery))
-                        return true;
-
-                    if (item is AvatarExplorerItem aeItem)
-                        return aeItem.Title.Contains(
-                            searchQuery,
-                            StringComparison.OrdinalIgnoreCase
-                        );
-
-                    if (item is KonoAssetWearableItem kaItem)
-                        return kaItem.description.name.Contains(
-                            searchQuery,
-                            StringComparison.OrdinalIgnoreCase
-                        );
-
-                    return false;
-                })
-                .ToList();
+            var filteredItems = GetFilteredItems();
+            var sortedItems = SortItems(filteredItems);
 
             // ページネーション
             int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, sortedItems.Count);
+            var pageItems = sortedItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
 
             foreach (var item in pageItems)
             {
@@ -497,11 +549,12 @@ namespace UnityEditorAssetBrowser
         private void ShowWorldObjectsContent()
         {
             var filteredItems = GetFilteredWorldObjects();
+            var sortedItems = SortItems(filteredItems);
 
             // ページネーション
             int startIndex = currentPage * ITEMS_PER_PAGE;
-            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, filteredItems.Count);
-            var pageItems = filteredItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
+            int endIndex = Mathf.Min(startIndex + ITEMS_PER_PAGE, sortedItems.Count);
+            var pageItems = sortedItems.Skip(startIndex).Take(ITEMS_PER_PAGE);
 
             foreach (var item in pageItems)
             {
@@ -559,34 +612,38 @@ namespace UnityEditorAssetBrowser
             }
 
             if (string.IsNullOrEmpty(searchQuery))
-                return items;
+                return SortItems(items);
 
-            return items
-                .Where(item =>
-                {
-                    if (item is AvatarExplorerItem aeItem)
+            return SortItems(
+                items
+                    .Where(item =>
                     {
-                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
-                                >= 0
-                            || aeItem.AuthorName.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    else if (item is KonoAssetAvatarItem kaItem)
-                    {
-                        return kaItem.description.name.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0
-                            || kaItem.description.creator.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    return false;
-                })
-                .ToList();
+                        if (item is AvatarExplorerItem aeItem)
+                        {
+                            return aeItem.Title.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || aeItem.AuthorName.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        else if (item is KonoAssetAvatarItem kaItem)
+                        {
+                            return kaItem.description.name.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || kaItem.description.creator.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        return false;
+                    })
+                    .ToList()
+            );
         }
 
         /// <summary>
@@ -619,34 +676,38 @@ namespace UnityEditorAssetBrowser
             }
 
             if (string.IsNullOrEmpty(searchQuery))
-                return items;
+                return SortItems(items);
 
-            return items
-                .Where(item =>
-                {
-                    if (item is AvatarExplorerItem aeItem)
+            return SortItems(
+                items
+                    .Where(item =>
                     {
-                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
-                                >= 0
-                            || aeItem.AuthorName.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    else if (item is KonoAssetWearableItem kaItem)
-                    {
-                        return kaItem.description.name.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0
-                            || kaItem.description.creator.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    return false;
-                })
-                .ToList();
+                        if (item is AvatarExplorerItem aeItem)
+                        {
+                            return aeItem.Title.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || aeItem.AuthorName.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        else if (item is KonoAssetWearableItem kaItem)
+                        {
+                            return kaItem.description.name.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || kaItem.description.creator.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        return false;
+                    })
+                    .ToList()
+            );
         }
 
         /// <summary>
@@ -684,34 +745,199 @@ namespace UnityEditorAssetBrowser
             }
 
             if (string.IsNullOrEmpty(searchQuery))
-                return items;
+                return SortItems(items);
 
-            return items
-                .Where(item =>
+            return SortItems(
+                items
+                    .Where(item =>
+                    {
+                        if (item is AvatarExplorerItem aeItem)
+                        {
+                            return aeItem.Title.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || aeItem.AuthorName.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        else if (item is KonoAssetWorldObjectItem kaItem)
+                        {
+                            return kaItem.description.name.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0
+                                || kaItem.description.creator.IndexOf(
+                                    searchQuery,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) >= 0;
+                        }
+                        return false;
+                    })
+                    .ToList()
+            );
+        }
+
+        /// <summary>
+        /// アイテムをソートする
+        /// </summary>
+        /// <param name="items">ソートするアイテムリスト</param>
+        /// <returns>ソートされたアイテムリスト</returns>
+        private List<object> SortItems(List<object> items)
+        {
+            switch (currentSortMethod)
+            {
+                case SortMethod.CreatedDateDesc:
+                    return items.OrderByDescending(item => GetCreatedDate(item)).ToList();
+                case SortMethod.CreatedDateAsc:
+                    return items.OrderBy(item => GetCreatedDate(item)).ToList();
+                case SortMethod.TitleAsc:
+                    return items.OrderBy(item => GetTitle(item)).ToList();
+                case SortMethod.TitleDesc:
+                    return items.OrderByDescending(item => GetTitle(item)).ToList();
+                case SortMethod.AuthorAsc:
+                    return items.OrderBy(item => GetAuthor(item)).ToList();
+                case SortMethod.AuthorDesc:
+                    return items.OrderByDescending(item => GetAuthor(item)).ToList();
+                default:
+                    return items;
+            }
+        }
+
+        /// <summary>
+        /// 日付文字列をDateTimeに変換
+        /// </summary>
+        /// <param name="date">日付文字列</param>
+        /// <returns>DateTime</returns>
+        private static DateTime GetDate(string date)
+        {
+            try
+            {
+                if (date.All(char.IsDigit))
+                    return DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(date)).DateTime;
+
+                var allDigits = "";
+                foreach (var c in date)
                 {
-                    if (item is AvatarExplorerItem aeItem)
-                    {
-                        return aeItem.Title.IndexOf(searchQuery, StringComparison.OrdinalIgnoreCase)
-                                >= 0
-                            || aeItem.AuthorName.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    else if (item is KonoAssetWorldObjectItem kaItem)
-                    {
-                        return kaItem.description.name.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0
-                            || kaItem.description.creator.IndexOf(
-                                searchQuery,
-                                StringComparison.OrdinalIgnoreCase
-                            ) >= 0;
-                    }
-                    return false;
-                })
-                .ToList();
+                    if (char.IsDigit(c))
+                        allDigits += c;
+                }
+
+                if (allDigits.Length != 14)
+                    return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
+
+                var year = allDigits.Substring(0, 4);
+                var month = allDigits.Substring(4, 2);
+                var day = allDigits.Substring(6, 2);
+                var hour = allDigits.Substring(8, 2);
+                var minute = allDigits.Substring(10, 2);
+                var second = allDigits.Substring(12, 2);
+
+                var dateTime = new DateTime(
+                    int.Parse(year),
+                    int.Parse(month),
+                    int.Parse(day),
+                    int.Parse(hour),
+                    int.Parse(minute),
+                    int.Parse(second),
+                    DateTimeKind.Unspecified
+                );
+
+                // ローカルのタイムゾーンの時間をUTCに変換
+                var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, TimeZoneInfo.Local);
+
+                return utcDateTime;
+            }
+            catch
+            {
+                return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
+            }
+        }
+
+        /// <summary>
+        /// アイテムの作成日を取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>作成日（UnixTimeMilliseconds）</returns>
+        private long GetCreatedDate(object item)
+        {
+            if (item is AvatarExplorerItem aeItem)
+            {
+                if (aeItem.CreatedDate == default)
+                    return 0;
+
+                // 日付文字列をUTCのDateTimeに変換
+                var utcDateTime = GetDate(aeItem.CreatedDate.ToString());
+
+                // UTCのDateTimeをUnixTimeMillisecondsに変換
+                return new DateTimeOffset(utcDateTime, TimeSpan.Zero).ToUnixTimeMilliseconds();
+            }
+            else if (item is KonoAssetAvatarItem kaItem)
+            {
+                return kaItem.description.createdAt;
+            }
+            else if (item is KonoAssetWearableItem wearableItem)
+            {
+                return wearableItem.description.createdAt;
+            }
+            else if (item is KonoAssetWorldObjectItem worldItem)
+            {
+                return worldItem.description.createdAt;
+            }
+            return 0;
+        }
+
+        /// <summary>
+        /// アイテムのタイトルを取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>タイトル</returns>
+        private string GetTitle(object item)
+        {
+            if (item is AvatarExplorerItem aeItem)
+            {
+                return aeItem.Title;
+            }
+            else if (item is KonoAssetAvatarItem kaItem)
+            {
+                return kaItem.description.name;
+            }
+            else if (item is KonoAssetWearableItem wearableItem)
+            {
+                return wearableItem.description.name;
+            }
+            else if (item is KonoAssetWorldObjectItem worldItem)
+            {
+                return worldItem.description.name;
+            }
+            return string.Empty;
+        }
+
+        /// <summary>
+        /// アイテムの作者名を取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>作者名</returns>
+        private string GetAuthor(object item)
+        {
+            if (item is AvatarExplorerItem aeItem)
+            {
+                return aeItem.AuthorName;
+            }
+            else if (item is KonoAssetAvatarItem kaItem)
+            {
+                return kaItem.description.creator;
+            }
+            else if (item is KonoAssetWearableItem wearableItem)
+            {
+                return wearableItem.description.creator;
+            }
+            else if (item is KonoAssetWorldObjectItem worldItem)
+            {
+                return worldItem.description.creator;
+            }
+            return string.Empty;
         }
 
         #region Item Display Methods
