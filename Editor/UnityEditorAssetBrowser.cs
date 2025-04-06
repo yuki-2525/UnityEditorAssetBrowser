@@ -1508,12 +1508,37 @@ namespace UnityEditorAssetBrowser
         /// <param name="itemPath">アイテムパス</param>
         private void DrawOpenButton(string itemPath)
         {
-            if (Directory.Exists(itemPath))
+            // 相対パスの場合はAEDatabasePathと結合
+            string fullPath = itemPath;
+            if (itemPath.StartsWith("Datas\\") && aeDatabasePath != null)
+            {
+                // パスの区切り文字を正規化
+                string normalizedItemPath = itemPath.Replace(
+                    "\\",
+                    Path.DirectorySeparatorChar.ToString()
+                );
+                string normalizedAePath = aeDatabasePath.Replace(
+                    "/",
+                    Path.DirectorySeparatorChar.ToString()
+                );
+
+                // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
+                string itemName = Path.GetFileName(normalizedItemPath);
+                fullPath = Path.Combine(normalizedAePath, "Items", itemName);
+                Debug.Log($"相対パスを変換: {itemPath} -> {fullPath}");
+            }
+
+            if (Directory.Exists(fullPath))
             {
                 if (GUILayout.Button("開く", GUILayout.Width(150)))
                 {
-                    System.Diagnostics.Process.Start("explorer.exe", itemPath);
+                    Debug.Log($"開くボタンが押されました。パス: {fullPath}");
+                    System.Diagnostics.Process.Start("explorer.exe", fullPath);
                 }
+            }
+            else
+            {
+                Debug.LogWarning($"ディレクトリが存在しません: {fullPath}");
             }
         }
 
