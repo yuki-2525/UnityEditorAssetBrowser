@@ -1,4 +1,6 @@
 // Copyright (c) 2025 yuki-2525
+// This code is borrowed from AvatarExplorer(https://github.com/yuki-2525/AvatarExplorer)
+// AvatarExplorer is licensed under the MIT License. https://github.com/yuki-2525/AvatarExplorer/blob/main/LICENSE
 // This code is borrowed from AssetLibraryManager (https://github.com/MAIOTAchannel/AssetLibraryManager)
 // Used with permission from MAIOTAchannel
 
@@ -89,6 +91,9 @@ namespace UnityEditorAssetBrowser
 
         /// <summary>現在のページ番号</summary>
         private int currentPage = 0;
+
+        /// <summary>メモのフォールドアウト状態の管理</summary>
+        private Dictionary<string, bool> memoFoldouts = new Dictionary<string, bool>();
 
         /// <summary>UnityPackageのフォールドアウト状態の管理</summary>
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
@@ -417,11 +422,11 @@ namespace UnityEditorAssetBrowser
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    ShowAvatarItem(aeItem);
+                    ShowAvatarItem(aeItem, false, false); // アバタータブではカテゴリと対応アバターを表示しない
                 }
                 else if (item is KonoAssetAvatarItem kaItem)
                 {
-                    ShowKonoAssetItem(kaItem);
+                    ShowKonoAssetItem(kaItem, false, false); // アバタータブではカテゴリと対応アバターを表示しない
                 }
             }
         }
@@ -477,11 +482,11 @@ namespace UnityEditorAssetBrowser
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    ShowAvatarItem(aeItem);
+                    ShowAvatarItem(aeItem, true, true); // アバター関連タブではカテゴリと対応アバターを表示する
                 }
                 else if (item is KonoAssetWearableItem kaItem)
                 {
-                    ShowKonoAssetWearableItem(kaItem);
+                    ShowKonoAssetWearableItem(kaItem, true); // アバター関連タブでは対応アバターを表示する
                 }
             }
         }
@@ -502,7 +507,7 @@ namespace UnityEditorAssetBrowser
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    ShowAvatarItem(aeItem);
+                    ShowAvatarItem(aeItem, true, false); // ワールドタブではカテゴリを表示し、対応アバターを表示しない
                 }
                 else if (item is KonoAssetWorldObjectItem worldItem)
                 {
@@ -714,10 +719,28 @@ namespace UnityEditorAssetBrowser
         /// AEアバターアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        private void ShowAvatarItem(AvatarExplorerItem item)
+        /// <param name="showCategory">カテゴリを表示するかどうか</param>
+        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
+        private void ShowAvatarItem(
+            AvatarExplorerItem item,
+            bool showCategory,
+            bool showSupportedAvatars = false
+        )
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            DrawItemHeader(item.Title, item.AuthorName, item.ImagePath, item.ItemPath);
+            DrawItemHeader(
+                item.Title,
+                item.AuthorName,
+                item.ImagePath,
+                item.ItemPath,
+                item.CreatedDate,
+                item.Category,
+                item.SupportedAvatars,
+                item.Tags,
+                item.Memo,
+                showCategory, // カテゴリの表示を制御
+                showSupportedAvatars // 対応アバターの表示を制御
+            );
             DrawUnityPackageSection(item.ItemPath, item.Title);
             GUILayout.EndVertical();
         }
@@ -726,15 +749,39 @@ namespace UnityEditorAssetBrowser
         /// KAアバターアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        private void ShowKonoAssetItem(KonoAssetAvatarItem item)
+        /// <param name="showCategory">カテゴリを表示するかどうか</param>
+        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
+        private void ShowKonoAssetItem(
+            KonoAssetAvatarItem item,
+            bool showCategory,
+            bool showSupportedAvatars = false
+        )
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+
+            // Unix時間をDateTimeに変換
+            DateTime? createdDate = null;
+
+            if (item.description.createdAt > 0)
+            {
+                createdDate = DateTimeOffset
+                    .FromUnixTimeMilliseconds(item.description.createdAt)
+                    .DateTime;
+            }
+
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
                 item.description.imageFilename,
-                itemPath
+                itemPath,
+                createdDate,
+                null,
+                null,
+                item.description.tags,
+                item.description.memo,
+                showCategory, // カテゴリの表示を制御
+                showSupportedAvatars // 対応アバターの表示を制御
             );
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
@@ -744,17 +791,38 @@ namespace UnityEditorAssetBrowser
         /// KAウェアラブルアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        private void ShowKonoAssetWearableItem(KonoAssetWearableItem item)
+        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
+        private void ShowKonoAssetWearableItem(
+            KonoAssetWearableItem item,
+            bool showSupportedAvatars = false
+        )
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+
+            // Unix時間をDateTimeに変換
+            DateTime? createdDate = null;
+
+            if (item.description.createdAt > 0)
+            {
+                createdDate = DateTimeOffset
+                    .FromUnixTimeMilliseconds(item.description.createdAt)
+                    .DateTime;
+            }
+
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
                 item.description.imageFilename,
-                itemPath
+                itemPath,
+                createdDate,
+                item.category,
+                item.supportedAvatars,
+                item.description.tags,
+                item.description.memo,
+                true, // ウェアラブルタブではカテゴリを表示する
+                showSupportedAvatars // 対応アバターの表示を制御
             );
-            DrawItemDetails(item.category, item.supportedAvatars);
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
         }
@@ -767,13 +835,30 @@ namespace UnityEditorAssetBrowser
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+
+            // Unix時間をDateTimeに変換
+            DateTime? createdDate = null;
+
+            if (item.description.createdAt > 0)
+            {
+                createdDate = DateTimeOffset
+                    .FromUnixTimeMilliseconds(item.description.createdAt)
+                    .DateTime;
+            }
+
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
                 item.description.imageFilename,
-                itemPath
+                itemPath,
+                createdDate,
+                item.category,
+                null, // ワールドオブジェクトタブでは対応アバターを表示しない
+                item.description.tags,
+                item.description.memo,
+                true, // ワールドオブジェクトタブではカテゴリを表示する
+                false // ワールドオブジェクトタブでは対応アバターを表示しない
             );
-            DrawItemDetails(item.category);
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
         }
@@ -785,13 +870,160 @@ namespace UnityEditorAssetBrowser
         /// <param name="author">作者名</param>
         /// <param name="imagePath">画像パス</param>
         /// <param name="itemPath">アイテムパス</param>
-        private void DrawItemHeader(string title, string author, string imagePath, string itemPath)
+        /// <param name="createdDate">作成日（ソート用）</param>
+        /// <param name="category">カテゴリ</param>
+        /// <param name="supportedAvatars">対応アバター</param>
+        /// <param name="tags">タグ</param>
+        /// <param name="memo">メモ</param>
+        /// <param name="showCategory">カテゴリを表示するかどうか</param>
+        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
+        private void DrawItemHeader(
+            string title,
+            string author,
+            string imagePath,
+            string itemPath,
+            DateTime? createdDate = null,
+            string? category = null,
+            string[]? supportedAvatars = null,
+            string[]? tags = null,
+            string? memo = null,
+            bool showCategory = true,
+            bool showSupportedAvatars = false
+        )
         {
             GUILayout.BeginHorizontal();
             DrawItemImage(imagePath);
             GUILayout.BeginVertical();
+
+            // タイトル
             GUILayout.Label(title, EditorStyles.boldLabel);
+
+            // 作者名
             GUILayout.Label($"作者: {author}");
+
+            // カテゴリ（showCategoryがtrueの場合のみ表示）
+            if (showCategory && !string.IsNullOrEmpty(category))
+            {
+                if (aeDatabase != null)
+                {
+                    var item = aeDatabase.Items.FirstOrDefault(i => i.Title == title);
+                    if (item != null)
+                    {
+                        GUILayout.Label($"カテゴリ: {item.GetCategoryName()}");
+                    }
+                    else
+                    {
+                        GUILayout.Label($"カテゴリ: {category}");
+                    }
+                }
+                else
+                {
+                    GUILayout.Label($"カテゴリ: {category}");
+                }
+            }
+
+            // 対応アバター（showSupportedAvatarsがtrueの場合のみ表示）
+            if (showSupportedAvatars && supportedAvatars != null && supportedAvatars.Length > 0)
+            {
+                string supportedAvatarsText;
+
+                // AEのアイテムの場合、パスからアバター名を取得
+                if (aeDatabase != null)
+                {
+                    var supportedAvatarNames = new List<string>();
+                    foreach (var avatarPath in supportedAvatars)
+                    {
+                        var avatarItem = aeDatabase.Items.FirstOrDefault(x =>
+                            x.ItemPath == avatarPath
+                        );
+                        if (avatarItem != null)
+                        {
+                            supportedAvatarNames.Add(avatarItem.Title);
+                        }
+                        else
+                        {
+                            // パスが見つからない場合はパスをそのまま表示
+                            supportedAvatarNames.Add(Path.GetFileName(avatarPath));
+                        }
+                    }
+                    supportedAvatarsText =
+                        "対応アバター: " + string.Join(", ", supportedAvatarNames);
+                }
+                else
+                {
+                    // KAのアイテムの場合はそのまま表示
+                    supportedAvatarsText = "対応アバター: " + string.Join(", ", supportedAvatars);
+                }
+
+                GUILayout.Label(supportedAvatarsText);
+            }
+
+            // タグ（KAのみ）
+            if (tags != null && tags.Length > 0)
+            {
+                string tagsText = "タグ: " + string.Join(", ", tags);
+                GUILayout.Label(tagsText);
+            }
+
+            // メモ（トグルで表示）
+            if (!string.IsNullOrEmpty(memo))
+            {
+                // メモのフォールドアウト状態を管理するためのキー
+                string memoKey = $"{title}_memo";
+                if (!memoFoldouts.ContainsKey(memoKey))
+                {
+                    memoFoldouts[memoKey] = false;
+                }
+
+                // 枠の開始位置を記録
+                var startRect = EditorGUILayout.GetControlRect(false, 0);
+                var startY = startRect.y;
+
+                // 行全体をクリック可能にするためのボックスを作成
+                var boxRect = EditorGUILayout.GetControlRect(
+                    false,
+                    EditorGUIUtility.singleLineHeight
+                );
+
+                // フォールドアウトの状態を更新
+                if (
+                    Event.current.type == EventType.MouseDown
+                    && boxRect.Contains(Event.current.mousePosition)
+                )
+                {
+                    memoFoldouts[memoKey] = !memoFoldouts[memoKey];
+                    GUI.changed = true;
+                    Event.current.Use();
+                }
+
+                // ラベルを描画（▼を追加）
+                string toggleText = memoFoldouts[memoKey] ? "▼メモ" : "▶メモ";
+                EditorGUI.LabelField(boxRect, toggleText);
+
+                if (memoFoldouts[memoKey])
+                {
+                    EditorGUI.indentLevel++;
+                    EditorGUILayout.LabelField(memo, EditorStyles.wordWrappedLabel);
+                    EditorGUI.indentLevel--;
+                }
+
+                // 枠の終了位置を取得
+                var endRect = GUILayoutUtility.GetLastRect();
+                var endY = endRect.y + endRect.height;
+
+                // 枠を描画
+                var frameRect = new Rect(
+                    startRect.x,
+                    startY,
+                    EditorGUIUtility.currentViewWidth - 20,
+                    endY - startY + 10
+                );
+                EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+                GUI.Box(frameRect, "", EditorStyles.helpBox);
+            }
+
+            // 開くボタンとアイテムデータとの間に一行間を開ける
+            EditorGUILayout.Space(5);
             DrawOpenButton(itemPath);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
@@ -843,20 +1075,6 @@ namespace UnityEditorAssetBrowser
                 {
                     System.Diagnostics.Process.Start("explorer.exe", itemPath);
                 }
-            }
-        }
-
-        /// <summary>
-        /// アイテム詳細の描画
-        /// </summary>
-        /// <param name="category">カテゴリー</param>
-        /// <param name="supportedAvatars">対応アバター</param>
-        private void DrawItemDetails(string category, string[]? supportedAvatars = null)
-        {
-            GUILayout.Label($"カテゴリー: {category}");
-            if (supportedAvatars != null && supportedAvatars.Length > 0)
-            {
-                GUILayout.Label($"対応アバター: {string.Join(", ", supportedAvatars)}");
             }
         }
 
@@ -928,15 +1146,18 @@ namespace UnityEditorAssetBrowser
             var endRect = GUILayoutUtility.GetLastRect();
             var endY = endRect.y + endRect.height;
 
-            // 枠を描画
+            // 枠を描画（余白を調整）
             var frameRect = new Rect(
                 startRect.x,
                 startY,
                 EditorGUIUtility.currentViewWidth - 20,
-                endY - startY + 10
+                endY - startY + 5 // 余白を10から5に減らす
             );
             EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
             GUI.Box(frameRect, "", EditorStyles.helpBox);
+
+            // 次のアイテムとの間に余白を追加
+            EditorGUILayout.Space(5);
         }
 
         /// <summary>

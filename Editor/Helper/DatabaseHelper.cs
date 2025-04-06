@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEditorAssetBrowser.Models;
@@ -27,6 +28,8 @@ namespace UnityEditorAssetBrowser.Helper
             NullValueHandling = NullValueHandling.Ignore,
             ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
             ObjectCreationHandling = ObjectCreationHandling.Replace,
+            DateParseHandling = DateParseHandling.None,
+            Converters = new List<JsonConverter> { new CustomDateTimeConverter() },
         };
         #endregion
 
@@ -104,12 +107,22 @@ namespace UnityEditorAssetBrowser.Helper
                     return null;
                 }
 
+                Debug.Log($"Loading KA database from: {path}");
                 var json = File.ReadAllText(path);
-                return JsonConvert.DeserializeObject<KonoAssetDatabase>(json, JsonSettings);
+                var database = JsonConvert.DeserializeObject<KonoAssetDatabase>(json, JsonSettings);
+
+                if (database == null)
+                {
+                    Debug.LogWarning("Failed to deserialize KA database");
+                    return null;
+                }
+
+                Debug.Log($"KA database loaded successfully. Items count: {database.data.Length}");
+                return database;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Error loading KA database from {path}: {ex.Message}");
+                Debug.LogWarning($"Error loading KA database: {ex.Message}");
                 return null;
             }
         }
@@ -129,11 +142,10 @@ namespace UnityEditorAssetBrowser.Helper
                     Directory.CreateDirectory(metadataPath);
                 }
 
-                var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
-                var wearablesJson = JsonConvert.SerializeObject(database, JsonSettings);
-                File.WriteAllText(wearablesPath, wearablesJson);
-
-                Debug.Log($"KA database saved successfully to: {path}");
+                var jsonPath = Path.Combine(metadataPath, "database.json");
+                var json = JsonConvert.SerializeObject(database, JsonSettings);
+                File.WriteAllText(jsonPath, json);
+                Debug.Log($"KA database saved successfully to: {jsonPath}");
             }
             catch (Exception ex)
             {
@@ -158,5 +170,41 @@ namespace UnityEditorAssetBrowser.Helper
             return Directory.GetFiles(directory, "*.unitypackage", SearchOption.AllDirectories);
         }
         #endregion
+    }
+
+    /// <summary>
+    /// カスタム日付変換クラス
+    /// </summary>
+    public class CustomDateTimeConverter : JsonConverter<DateTime>
+    {
+        public override DateTime ReadJson(
+            JsonReader reader,
+            Type objectType,
+            DateTime existingValue,
+            bool hasExistingValue,
+            JsonSerializer serializer
+        )
+        {
+            if (reader.TokenType == JsonToken.Null)
+                return DateTime.MinValue;
+
+            if (reader.TokenType == JsonToken.String)
+            {
+                string dateString = reader.Value?.ToString() ?? string.Empty;
+
+                // 日付形式の変換
+                if (DateTime.TryParse(dateString, out DateTime result))
+                    return result;
+            }
+
+            throw new JsonSerializationException(
+                $"Unexpected token type {reader.TokenType} when parsing DateTime"
+            );
+        }
+
+        public override void WriteJson(JsonWriter writer, DateTime value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value.ToString("yyyy-MM-dd HH:mm:ss"));
+        }
     }
 }

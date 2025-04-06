@@ -74,6 +74,50 @@ namespace UnityEditorAssetBrowser.Models
 
         [JsonProperty("ThumbnailUrl")]
         public string ThumbnailUrl { get; set; } = "";
+
+        [JsonProperty("CreatedDate")]
+        public DateTime CreatedDate { get; set; } = DateTime.MinValue;
+
+        // 追加プロパティ
+        [JsonIgnore]
+        public string Category => GetCategoryName();
+
+        [JsonIgnore]
+        public string[] SupportedAvatars => SupportedAvatar;
+
+        [JsonIgnore]
+        public string[] Tags => Array.Empty<string>();
+
+        [JsonIgnore]
+        public string Memo => ItemMemo;
+
+        public string GetCategoryName()
+        {
+            // Typeを数値に変換
+            if (int.TryParse(Type, out int typeValue))
+            {
+                if (typeValue == 9 && !string.IsNullOrEmpty(CustomCategory))
+                {
+                    return CustomCategory;
+                }
+
+                return typeValue switch
+                {
+                    0 => "アバター",
+                    1 => "衣装",
+                    2 => "テクスチャ",
+                    3 => "ギミック",
+                    4 => "アクセサリー",
+                    5 => "ワールド",
+                    6 => "アバターギミック",
+                    7 => "アバターアクセサリー",
+                    8 => "アバター衣装",
+                    _ => "その他",
+                };
+            }
+
+            return "その他";
+        }
     }
     #endregion
 }
