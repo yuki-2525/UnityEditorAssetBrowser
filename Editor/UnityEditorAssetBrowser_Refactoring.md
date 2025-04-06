@@ -207,11 +207,11 @@ UnityEditorAssetBrowser/
 - **LoadSettings** - 設定の読み込み
 - **SaveSettings** - 設定の保存
 
-### 7.10 Services/ImageService.cs
+### 7.10 Services/ImageService.cs ✅
 - **LoadTexture** - テクスチャを読み込む
 - **GetItemImagePath** - アイテムの画像パスを取得
 
-### 7.11 Services/UnityPackageService.cs
+### 7.11 Services/UnityPackageService.cs ✅
 - **FindUnityPackages** - 指定されたディレクトリ内のUnityPackageファイルを検索する
 
 ### 7.12 Helpers/AEDatabaseHelper.cs

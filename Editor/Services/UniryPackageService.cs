@@ -5,12 +5,12 @@
 using System;
 using System.IO;
 
-namespace UnityEditorAssetBrowser.Helper
+namespace UnityEditorAssetBrowser.Services
 {
     /// <summary>
-    /// UnityPackage操作を支援するヘルパークラス
+    /// UnityPackage操作を支援するサービスクラス
     /// </summary>
-    public static class UnityPackageHelper
+    public static class UnityPackageServices
     {
         /// <summary>
         /// 指定されたディレクトリ内のUnityPackageファイルを検索する

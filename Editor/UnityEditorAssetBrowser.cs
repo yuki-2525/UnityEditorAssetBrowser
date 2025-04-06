@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
+using UnityEditorAssetBrowser.Services;
 using UnityEngine;
 
 namespace UnityEditorAssetBrowser
@@ -92,7 +93,7 @@ namespace UnityEditorAssetBrowser
         private Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
 
         /// <summary>画像のキャッシュ</summary>
-        private Dictionary<string, Texture2D> imageCache = new Dictionary<string, Texture2D>();
+        private Dictionary<string, Texture2D> imageCache => ImageServices.Instance.imageCache;
 
         /// <summary>タイトル用のスタイル</summary>
         private GUIStyle? titleStyle;
@@ -1480,7 +1481,7 @@ namespace UnityEditorAssetBrowser
             string fullImagePath = GetFullImagePath(imagePath);
             if (File.Exists(fullImagePath))
             {
-                var texture = LoadTexture(fullImagePath);
+                var texture = ImageServices.Instance.LoadTexture(fullImagePath);
                 if (texture != null)
                 {
                     GUILayout.Label(texture, GUILayout.Width(100), GUILayout.Height(100));
@@ -1547,79 +1548,90 @@ namespace UnityEditorAssetBrowser
         /// <param name="itemName">アイテム名</param>
         private void DrawUnityPackageSection(string itemPath, string itemName)
         {
-            var unityPackages = UnityPackageHelper.FindUnityPackages(itemPath);
-            if (!unityPackages.Any())
-                return;
+            // 相対パスの場合はAEDatabasePathと結合
+            string fullPath = itemPath;
+            if (itemPath.StartsWith("Datas\\") && aeDatabasePath != null)
+            {
+                // パスの区切り文字を正規化
+                string normalizedItemPath = itemPath.Replace(
+                    "\\",
+                    Path.DirectorySeparatorChar.ToString()
+                );
+                string normalizedAePath = aeDatabasePath.Replace(
+                    "/",
+                    Path.DirectorySeparatorChar.ToString()
+                );
 
+                // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
+                string fileName = Path.GetFileName(normalizedItemPath);
+                fullPath = Path.Combine(normalizedAePath, "Items", fileName);
+            }
+
+            var unityPackages = UnityPackageServices.FindUnityPackages(fullPath);
+            if (!unityPackages.Any())
+            {
+                return;
+            }
+
+            // フォールドアウトの状態を初期化（キーが存在しない場合）
             if (!unityPackageFoldouts.ContainsKey(itemName))
             {
                 unityPackageFoldouts[itemName] = false;
             }
 
-            // 枠の開始位置を記録
-            var startRect = EditorGUILayout.GetControlRect(false, 0);
-            var startY = startRect.y;
-
-            // 行全体をクリック可能にするためのボックスを作成
-            var boxRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
-            var foldoutRect = new Rect(
-                boxRect.x,
-                boxRect.y,
-                EditorGUIUtility.singleLineHeight,
-                boxRect.height
-            );
-            var labelRect = new Rect(
-                boxRect.x + EditorGUIUtility.singleLineHeight,
-                boxRect.y,
-                boxRect.width - EditorGUIUtility.singleLineHeight,
-                boxRect.height
-            );
-
-            // フォールドアウトの状態を更新
-            if (
-                Event.current.type == EventType.MouseDown
-                && boxRect.Contains(Event.current.mousePosition)
-            )
+            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             {
-                unityPackageFoldouts[itemName] = !unityPackageFoldouts[itemName];
-                GUI.changed = true;
-                Event.current.Use();
-            }
+                // 行全体をクリック可能にするためのボックスを作成
+                var boxRect = EditorGUILayout.GetControlRect(
+                    false,
+                    EditorGUIUtility.singleLineHeight
+                );
+                var foldoutRect = new Rect(
+                    boxRect.x,
+                    boxRect.y,
+                    EditorGUIUtility.singleLineHeight,
+                    boxRect.height
+                );
+                var labelRect = new Rect(
+                    boxRect.x + EditorGUIUtility.singleLineHeight,
+                    boxRect.y,
+                    boxRect.width - EditorGUIUtility.singleLineHeight,
+                    boxRect.height
+                );
 
-            // フォールドアウトとラベルを描画
-            unityPackageFoldouts[itemName] = EditorGUI.Foldout(
-                foldoutRect,
-                unityPackageFoldouts[itemName],
-                ""
-            );
-            EditorGUI.LabelField(labelRect, "UnityPackage");
-
-            if (unityPackageFoldouts[itemName])
-            {
-                EditorGUI.indentLevel++;
-                foreach (var package in unityPackages)
+                // フォールドアウトの状態を更新
+                if (
+                    Event.current.type == EventType.MouseDown
+                    && boxRect.Contains(Event.current.mousePosition)
+                )
                 {
-                    DrawUnityPackageItem(package);
+                    unityPackageFoldouts[itemName] = !unityPackageFoldouts[itemName];
+                    GUI.changed = true;
+                    Event.current.Use();
                 }
-                EditorGUI.indentLevel--;
+
+                // フォールドアウトとラベルを描画
+                unityPackageFoldouts[itemName] = EditorGUI.Foldout(
+                    foldoutRect,
+                    unityPackageFoldouts[itemName],
+                    ""
+                );
+                EditorGUI.LabelField(labelRect, "UnityPackage");
+
+                if (unityPackageFoldouts[itemName])
+                {
+                    EditorGUI.indentLevel++;
+                    foreach (var package in unityPackages)
+                    {
+                        DrawUnityPackageItem(package);
+                    }
+                    EditorGUI.indentLevel--;
+                }
+
+                // 次のアイテムとの間に余白を追加
+                EditorGUILayout.Space(5);
             }
-
-            // 枠の終了位置を取得
-            var endRect = GUILayoutUtility.GetLastRect();
-            var endY = endRect.y + endRect.height;
-
-            // 枠を描画（余白を調整）
-            var frameRect = new Rect(
-                startRect.x,
-                startY,
-                EditorGUIUtility.currentViewWidth - 20,
-                endY - startY + 5 // 余白を10から5に減らす
-            );
-            EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
-            GUI.Box(frameRect, "", EditorStyles.helpBox);
-
-            // 次のアイテムとの間に余白を追加
-            EditorGUILayout.Space(5);
+            EditorGUILayout.EndVertical();
         }
 
         /// <summary>
@@ -1648,12 +1660,6 @@ namespace UnityEditorAssetBrowser
                 return;
 
             aeDatabase = AEDatabaseHelper.LoadAEDatabase(aeDatabasePath);
-            if (aeDatabase != null)
-            {
-                Debug.Log(
-                    $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
-                );
-            }
         }
 
         /// <summary>
@@ -1668,8 +1674,6 @@ namespace UnityEditorAssetBrowser
 
             if (!Directory.Exists(metadataPath))
             {
-                Debug.LogWarning($"Metadata directory not found at: {metadataPath}");
-
                 // エラーポップアップを表示
                 EditorUtility.DisplayDialog(
                     "パスエラー",
@@ -1707,9 +1711,6 @@ namespace UnityEditorAssetBrowser
                 return;
 
             database = JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(baseDb));
-
-            var itemCount = GetItemCount(database);
-            Debug.Log($"{filename} loaded successfully. Items count: {itemCount}");
         }
 
         /// <summary>
@@ -1732,41 +1733,6 @@ namespace UnityEditorAssetBrowser
         #endregion
 
         #region Utility Methods
-        /// <summary>
-        /// テクスチャを読み込む
-        /// </summary>
-        /// <param name="path">テクスチャパス</param>
-        /// <returns>読み込んだテクスチャ</returns>
-        private Texture2D? LoadTexture(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                return null;
-
-            if (imageCache.TryGetValue(path, out var cachedTexture))
-            {
-                return cachedTexture;
-            }
-
-            if (!File.Exists(path))
-                return null;
-
-            try
-            {
-                var bytes = File.ReadAllBytes(path);
-                var texture = new Texture2D(2, 2);
-                if (UnityEngine.ImageConversion.LoadImage(texture, bytes))
-                {
-                    imageCache[path] = texture;
-                    return texture;
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning($"Error loading texture from {path}: {ex.Message}");
-            }
-
-            return null;
-        }
 
         /// <summary>
         /// 設定の読み込み
@@ -1797,7 +1763,7 @@ namespace UnityEditorAssetBrowser
         private void RefreshDatabases()
         {
             // 画像キャッシュをクリア
-            imageCache.Clear();
+            ImageServices.Instance.ClearCache();
 
             // データベースを再読み込み
             if (!string.IsNullOrEmpty(aeDatabasePath))
@@ -1820,19 +1786,19 @@ namespace UnityEditorAssetBrowser
         private void RefreshImageCache()
         {
             // 画像キャッシュをクリア
-            imageCache.Clear();
+            ImageServices.Instance.ClearCache();
 
             // 現在表示中のアイテムの画像を再読み込み
             var currentItems = GetCurrentTabItems();
             foreach (var item in currentItems)
             {
-                string imagePath = GetItemImagePath(item);
+                string imagePath = ImageServices.GetItemImagePath(item);
                 if (!string.IsNullOrEmpty(imagePath))
                 {
                     string fullImagePath = GetFullImagePath(imagePath);
                     if (File.Exists(fullImagePath))
                     {
-                        LoadTexture(fullImagePath);
+                        ImageServices.Instance.LoadTexture(fullImagePath);
                     }
                 }
             }
@@ -1855,33 +1821,6 @@ namespace UnityEditorAssetBrowser
                 default:
                     return new List<object>();
             }
-        }
-
-        /// <summary>
-        /// アイテムの画像パスを取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>画像パス</returns>
-        private string GetItemImagePath(object item)
-        {
-            if (item is AvatarExplorerItem aeItem)
-            {
-                return aeItem.ImagePath;
-            }
-            else if (item is KonoAssetAvatarItem kaItem)
-            {
-                return kaItem.description.imageFilename;
-            }
-            else if (item is KonoAssetWearableItem wearableItem)
-            {
-                return wearableItem.description.imageFilename;
-            }
-            else if (item is KonoAssetWorldObjectItem worldItem)
-            {
-                return worldItem.description.imageFilename;
-            }
-
-            return string.Empty;
         }
 
         /// <summary>
