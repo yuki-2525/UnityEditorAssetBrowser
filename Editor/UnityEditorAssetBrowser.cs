@@ -1525,14 +1525,12 @@ namespace UnityEditorAssetBrowser
                 // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
                 string itemName = Path.GetFileName(normalizedItemPath);
                 fullPath = Path.Combine(normalizedAePath, "Items", itemName);
-                Debug.Log($"相対パスを変換: {itemPath} -> {fullPath}");
             }
 
             if (Directory.Exists(fullPath))
             {
                 if (GUILayout.Button("開く", GUILayout.Width(150)))
                 {
-                    Debug.Log($"開くボタンが押されました。パス: {fullPath}");
                     System.Diagnostics.Process.Start("explorer.exe", fullPath);
                 }
             }
@@ -1549,7 +1547,7 @@ namespace UnityEditorAssetBrowser
         /// <param name="itemName">アイテム名</param>
         private void DrawUnityPackageSection(string itemPath, string itemName)
         {
-            var unityPackages = DatabaseHelper.FindUnityPackages(itemPath);
+            var unityPackages = UnityPackageHelper.FindUnityPackages(itemPath);
             if (!unityPackages.Any())
                 return;
 
@@ -1649,26 +1647,12 @@ namespace UnityEditorAssetBrowser
             if (string.IsNullOrEmpty(aeDatabasePath))
                 return;
 
-            Debug.Log($"Loading AE database from: {aeDatabasePath}");
-            aeDatabase = DatabaseHelper.LoadAEDatabase(aeDatabasePath);
+            aeDatabase = AEDatabaseHelper.LoadAEDatabase(aeDatabasePath);
             if (aeDatabase != null)
             {
                 Debug.Log(
                     $"AE database loaded successfully. Items count: {aeDatabase.Items.Count}"
                 );
-            }
-            else
-            {
-                // エラーポップアップを表示
-                EditorUtility.DisplayDialog(
-                    "パスエラー",
-                    "入力したパスが誤っています\n\n\"VRC-Avatar-Explorer-v○○/Data\"\nを指定してください",
-                    "OK"
-                );
-
-                // パスを空欄に戻す
-                aeDatabasePath = "";
-                SaveSettings();
             }
         }
 
@@ -1680,7 +1664,6 @@ namespace UnityEditorAssetBrowser
             if (string.IsNullOrEmpty(kaDatabasePath))
                 return;
 
-            Debug.Log($"Loading KA database from: {kaDatabasePath}");
             var metadataPath = Path.Combine(kaDatabasePath, "metadata");
 
             if (!Directory.Exists(metadataPath))
@@ -1719,7 +1702,7 @@ namespace UnityEditorAssetBrowser
             if (!File.Exists(filePath))
                 return;
 
-            var baseDb = DatabaseHelper.LoadKADatabase(filePath);
+            var baseDb = KADatabaseHelper.LoadKADatabase(filePath);
             if (baseDb == null)
                 return;
 
@@ -1813,8 +1796,6 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void RefreshDatabases()
         {
-            Debug.Log("Refreshing databases...");
-
             // 画像キャッシュをクリア
             imageCache.Clear();
 
@@ -1831,8 +1812,6 @@ namespace UnityEditorAssetBrowser
 
             // ページをリセット
             currentPage = 0;
-
-            Debug.Log("Databases refreshed successfully.");
         }
 
         /// <summary>
@@ -1840,8 +1819,6 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void RefreshImageCache()
         {
-            Debug.Log("Refreshing image cache...");
-
             // 画像キャッシュをクリア
             imageCache.Clear();
 
@@ -1859,8 +1836,6 @@ namespace UnityEditorAssetBrowser
                     }
                 }
             }
-
-            Debug.Log("Image cache refreshed successfully.");
         }
 
         /// <summary>
