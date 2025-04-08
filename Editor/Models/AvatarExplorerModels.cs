@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
+using UnityEditorAssetBrowser.Models;
 
 namespace UnityEditorAssetBrowser.Models
 {
@@ -34,6 +35,67 @@ namespace UnityEditorAssetBrowser.Models
     #endregion
 
     #region Item Model
+    /// <summary>
+    /// AvatarExplorerのアイテムタイプ
+    /// </summary>
+    public enum AvatarExplorerItemType
+    {
+        /// <summary>
+        /// アバター
+        /// </summary>
+        Avatar = 0,
+
+        /// <summary>
+        /// 衣装
+        /// </summary>
+        Clothing = 1,
+
+        /// <summary>
+        /// テクスチャ
+        /// </summary>
+        Texture = 2,
+
+        /// <summary>
+        /// ギミック
+        /// </summary>
+        Gimmick = 3,
+
+        /// <summary>
+        /// アクセサリー
+        /// </summary>
+        Accessory = 4,
+
+        /// <summary>
+        /// 髪型
+        /// </summary>
+        HairStyle = 5,
+
+        /// <summary>
+        /// アニメーション
+        /// </summary>
+        Animation = 6,
+
+        /// <summary>
+        /// ツール
+        /// </summary>
+        Tool = 7,
+
+        /// <summary>
+        /// シェーダー
+        /// </summary>
+        Shader = 8,
+
+        /// <summary>
+        /// カスタムカテゴリー
+        /// </summary>
+        Custom = 9,
+
+        /// <summary>
+        /// 不明
+        /// </summary>
+        Unknown = 10,
+    }
+
     /// <summary>
     /// AvatarExplorerのアイテムモデル
     /// </summary>
@@ -78,9 +140,8 @@ namespace UnityEditorAssetBrowser.Models
         [JsonProperty("CreatedDate")]
         public DateTime CreatedDate { get; set; } = DateTime.MinValue;
 
-        // 追加プロパティ
         [JsonIgnore]
-        public string Category => GetCategoryName();
+        public string Category => GetAECategoryName();
 
         [JsonIgnore]
         public string[] SupportedAvatars => SupportedAvatar;
@@ -91,32 +152,49 @@ namespace UnityEditorAssetBrowser.Models
         [JsonIgnore]
         public string Memo => ItemMemo;
 
-        public string GetCategoryName()
+        /// <summary>
+        /// AEアイテムのカテゴリー名を取得
+        /// </summary>
+        /// <returns>カテゴリー名</returns>
+        public string GetAECategoryName()
         {
-            // Typeを数値に変換
+            // Typeが数値として保存されている場合の処理
             if (int.TryParse(Type, out int typeValue))
             {
-                if (typeValue == 9 && !string.IsNullOrEmpty(CustomCategory))
-                {
-                    return CustomCategory;
-                }
-
-                return typeValue switch
-                {
-                    0 => "アバター",
-                    1 => "衣装",
-                    2 => "テクスチャ",
-                    3 => "ギミック",
-                    4 => "アクセサリー",
-                    5 => "ワールド",
-                    6 => "アバターギミック",
-                    7 => "アバターアクセサリー",
-                    8 => "アバター衣装",
-                    _ => "その他",
-                };
+                return GetCategoryNameByType((AvatarExplorerItemType)typeValue);
             }
 
-            return "その他";
+            // Typeが文字列として保存されている場合の処理
+            if (Enum.TryParse(Type, true, out AvatarExplorerItemType itemType))
+            {
+                return GetCategoryNameByType(itemType);
+            }
+
+            // デフォルトはカスタムカテゴリー
+            return CustomCategory;
+        }
+
+        /// <summary>
+        /// タイプに基づいてカテゴリー名を取得
+        /// </summary>
+        /// <param name="itemType">アイテムタイプ</param>
+        /// <returns>カテゴリー名</returns>
+        private string GetCategoryNameByType(AvatarExplorerItemType itemType)
+        {
+            return itemType switch
+            {
+                AvatarExplorerItemType.Avatar => "アバター",
+                AvatarExplorerItemType.Clothing => "衣装",
+                AvatarExplorerItemType.Texture => "テクスチャ",
+                AvatarExplorerItemType.Gimmick => "ギミック",
+                AvatarExplorerItemType.Accessory => "アクセサリー",
+                AvatarExplorerItemType.HairStyle => "髪型",
+                AvatarExplorerItemType.Animation => "アニメーション",
+                AvatarExplorerItemType.Tool => "ツール",
+                AvatarExplorerItemType.Shader => "シェーダー",
+                AvatarExplorerItemType.Custom => CustomCategory,
+                _ => "不明",
+            };
         }
     }
     #endregion

@@ -43,5 +43,65 @@ namespace UnityEditorAssetBrowser.Helper
         {
             writer.WriteValue(value.ToString("yyyy-MM-dd HH:mm:ss"));
         }
+
+        /// <summary>
+        /// 日付文字列をDateTimeに変換
+        /// </summary>
+        /// <param name="date">日付文字列</param>
+        /// <returns>DateTime</returns>
+        public static DateTime GetDate(string date)
+        {
+            try
+            {
+                bool allDigits = true;
+                foreach (char c in date)
+                {
+                    if (!char.IsDigit(c))
+                    {
+                        allDigits = false;
+                        break;
+                    }
+                }
+
+                if (allDigits)
+                    return DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(date)).DateTime;
+
+                var allDigitsStr = "";
+                foreach (var c in date)
+                {
+                    if (char.IsDigit(c))
+                        allDigitsStr += c;
+                }
+
+                if (allDigitsStr.Length != 14)
+                    return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
+
+                var year = allDigitsStr.Substring(0, 4);
+                var month = allDigitsStr.Substring(4, 2);
+                var day = allDigitsStr.Substring(6, 2);
+                var hour = allDigitsStr.Substring(8, 2);
+                var minute = allDigitsStr.Substring(10, 2);
+                var second = allDigitsStr.Substring(12, 2);
+
+                var dateTime = new DateTime(
+                    int.Parse(year),
+                    int.Parse(month),
+                    int.Parse(day),
+                    int.Parse(hour),
+                    int.Parse(minute),
+                    int.Parse(second),
+                    DateTimeKind.Unspecified
+                );
+
+                // ローカルのタイムゾーンの時間をUTCに変換
+                var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, TimeZoneInfo.Local);
+
+                return utcDateTime;
+            }
+            catch
+            {
+                return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
+            }
+        }
     }
 }

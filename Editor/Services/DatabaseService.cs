@@ -53,9 +53,9 @@ namespace UnityEditorAssetBrowser.Services
             kaDatabasePath = EditorPrefs.GetString(KA_DATABASE_PATH_KEY, "");
 
             if (!string.IsNullOrEmpty(aeDatabasePath))
-                LoadAEDatabase();
+                LoadAndUpdateAEDatabase();
             if (!string.IsNullOrEmpty(kaDatabasePath))
-                LoadKADatabase();
+                LoadAndUpdateKADatabase();
         }
 
         /// <summary>
@@ -68,20 +68,37 @@ namespace UnityEditorAssetBrowser.Services
         }
 
         /// <summary>
-        /// AEデータベースの読み込み
+        /// AEデータベースの読み込みと更新
         /// </summary>
-        public static void LoadAEDatabase()
+        public static void LoadAndUpdateAEDatabase()
         {
             if (string.IsNullOrEmpty(aeDatabasePath))
                 return;
 
-            aeDatabase = AEDatabaseHelper.LoadAEDatabase(aeDatabasePath);
+            var databasePath = Path.Combine(aeDatabasePath, "ItemsData.json");
+
+            if (!File.Exists(databasePath))
+            {
+                // エラーポップアップを表示
+                EditorUtility.DisplayDialog(
+                    "パスエラー",
+                    "入力したパスが誤っています\n\nAvatarExplorerの設定にある\n\"データベースの保存先\"と\n同一のディレクトリを指定してください",
+                    "OK"
+                );
+
+                // パスを空欄に戻す
+                aeDatabasePath = "";
+                SaveSettings();
+                return;
+            }
+
+            aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
         }
 
         /// <summary>
-        /// KAデータベースの読み込み
+        /// KAデータベースの読み込みと更新
         /// </summary>
-        public static void LoadKADatabase()
+        public static void LoadAndUpdateKADatabase()
         {
             if (string.IsNullOrEmpty(kaDatabasePath))
                 return;
@@ -103,7 +120,7 @@ namespace UnityEditorAssetBrowser.Services
                 return;
             }
 
-            var result = KADatabaseHelper.LoadKADatabase(metadataPath);
+            var result = KADatabaseHelper.LoadKADatabaseFiles(metadataPath);
             if (result != null)
             {
                 kaAvatarsDatabase = result.avatarsDatabase;

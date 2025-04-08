@@ -15,6 +15,7 @@ using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
 using UnityEditorAssetBrowser.Services;
+using UnityEditorAssetBrowser.ViewModels;
 using UnityEngine;
 
 namespace UnityEditorAssetBrowser
@@ -69,19 +70,8 @@ namespace UnityEditorAssetBrowser
         /// <summary>KAデータベースのパス</summary>
         private string kaDatabasePath = "";
 
-        /// <summary>検索クエリ</summary>
-        private string searchQuery = "";
-
         /// <summary>詳細検索の表示状態</summary>
-        private bool showAdvancedSearch = false;
-
-        /// <summary>詳細検索の各フィールド</summary>
-        private string titleSearch = "";
-        private string authorSearch = "";
-        private string categorySearch = "";
-        private string supportedAvatarsSearch = "";
-        private string tagsSearch = "";
-        private string memoSearch = "";
+        private bool showAdvancedSearch => searchViewModel.SearchCriteria.ShowAdvancedSearch;
 
         /// <summary>選択中のタブインデックス</summary>
         private int selectedTab = 0;
@@ -145,6 +135,10 @@ namespace UnityEditorAssetBrowser
             "ショップ名（A-Z順）",
             "ショップ名（Z-A順）",
         };
+
+        private AssetItem assetItem = new AssetItem();
+
+        private SearchViewModel searchViewModel = new SearchViewModel();
         #endregion
 
         #region Unity Editor Window Methods
@@ -171,9 +165,12 @@ namespace UnityEditorAssetBrowser
 
             // データベースを読み込む
             if (!string.IsNullOrEmpty(aeDatabasePath))
-                LoadAEDatabase();
+                LoadAndDisplayAEDatabase();
             if (!string.IsNullOrEmpty(kaDatabasePath))
-                LoadKADatabase();
+                LoadAndDisplayKADatabase();
+
+            // SearchViewModelを初期化
+            searchViewModel = new SearchViewModel(aeDatabase);
 
             // シーン変更時に自動的に更新を実行
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -238,16 +235,25 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void DrawDatabasePathFields()
         {
-            DrawDatabasePathField("AE Database Path:", ref aeDatabasePath, LoadAEDatabase);
-            DrawDatabasePathField("KA Database Path:", ref kaDatabasePath, LoadKADatabase);
+            DrawDatabasePathField(
+                "AE Database Path:",
+                ref aeDatabasePath,
+                LoadAndDisplayAEDatabase
+            );
+            DrawDatabasePathField(
+                "KA Database Path:",
+                ref kaDatabasePath,
+                LoadAndDisplayKADatabase
+            );
 
             // リフレッシュボタンを追加（一つにまとめる）
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("更新", GUILayout.Width(150)))
+            if (GUILayout.Button("更新", GUILayout.Width(100)))
             {
-                RefreshDatabases();
-                RefreshImageCache();
+                LoadAndDisplayAEDatabase();
+                LoadAndDisplayKADatabase();
+                Repaint();
             }
             EditorGUILayout.EndHorizontal();
 
@@ -329,6 +335,11 @@ namespace UnityEditorAssetBrowser
             {
                 selectedTab = newTab;
                 currentPage = 0;
+
+                // タブが切り替わったときにSearchViewModelに通知
+                searchViewModel.SetCurrentTab(selectedTab);
+
+                Repaint();
             }
             EditorGUILayout.Space(10);
         }
@@ -343,23 +354,26 @@ namespace UnityEditorAssetBrowser
             // 基本検索フィールド
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.LabelField("検索:", GUILayout.Width(60));
-            var newSearchQuery = EditorGUILayout.TextField(searchQuery);
-            if (newSearchQuery != searchQuery)
+            var newSearchQuery = EditorGUILayout.TextField(
+                searchViewModel.SearchCriteria.SearchQuery
+            );
+            if (newSearchQuery != searchViewModel.SearchCriteria.SearchQuery)
             {
-                searchQuery = newSearchQuery;
-                currentPage = 0;
+                searchViewModel.SearchCriteria.SearchQuery = newSearchQuery;
+                Repaint();
             }
 
             // 詳細検索のトグル
             var newShowAdvancedSearch = EditorGUILayout.ToggleLeft(
                 "詳細検索",
-                showAdvancedSearch,
+                searchViewModel.SearchCriteria.ShowAdvancedSearch,
                 GUILayout.Width(100)
             );
-            if (newShowAdvancedSearch != showAdvancedSearch)
+            if (newShowAdvancedSearch != searchViewModel.SearchCriteria.ShowAdvancedSearch)
             {
-                showAdvancedSearch = newShowAdvancedSearch;
+                searchViewModel.SearchCriteria.ShowAdvancedSearch = newShowAdvancedSearch;
                 currentPage = 0;
+                Repaint();
             }
 
             // ソートボタン
@@ -409,66 +423,88 @@ namespace UnityEditorAssetBrowser
                 // タイトル検索
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("タイトル:", GUILayout.Width(100));
-                var newTitleSearch = EditorGUILayout.TextField(titleSearch);
-                if (newTitleSearch != titleSearch)
+                var newTitleSearch = EditorGUILayout.TextField(
+                    searchViewModel.SearchCriteria.TitleSearch
+                );
+                if (newTitleSearch != searchViewModel.SearchCriteria.TitleSearch)
                 {
-                    titleSearch = newTitleSearch;
-                    currentPage = 0;
+                    searchViewModel.SearchCriteria.TitleSearch = newTitleSearch;
+                    Repaint();
                 }
                 EditorGUILayout.EndHorizontal();
 
                 // 作者名検索
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("作者名:", GUILayout.Width(100));
-                var newAuthorSearch = EditorGUILayout.TextField(authorSearch);
-                if (newAuthorSearch != authorSearch)
+                var newAuthorSearch = EditorGUILayout.TextField(
+                    searchViewModel.SearchCriteria.AuthorSearch
+                );
+                if (newAuthorSearch != searchViewModel.SearchCriteria.AuthorSearch)
                 {
-                    authorSearch = newAuthorSearch;
-                    currentPage = 0;
+                    searchViewModel.SearchCriteria.AuthorSearch = newAuthorSearch;
+                    Repaint();
                 }
                 EditorGUILayout.EndHorizontal();
 
-                // カテゴリ検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("カテゴリ:", GUILayout.Width(100));
-                var newCategorySearch = EditorGUILayout.TextField(categorySearch);
-                if (newCategorySearch != categorySearch)
+                // カテゴリ検索（アバタータブ以外で表示）
+                if (selectedTab != 0)
                 {
-                    categorySearch = newCategorySearch;
-                    currentPage = 0;
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("カテゴリ:", GUILayout.Width(100));
+                    var newCategorySearch = EditorGUILayout.TextField(
+                        searchViewModel.SearchCriteria.CategorySearch
+                    );
+                    if (newCategorySearch != searchViewModel.SearchCriteria.CategorySearch)
+                    {
+                        searchViewModel.SearchCriteria.CategorySearch = newCategorySearch;
+                        Repaint();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
-                EditorGUILayout.EndHorizontal();
 
-                // 対応アバター検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("対応アバター:", GUILayout.Width(100));
-                var newSupportedAvatarsSearch = EditorGUILayout.TextField(supportedAvatarsSearch);
-                if (newSupportedAvatarsSearch != supportedAvatarsSearch)
+                // 対応アバター検索（アイテムタブのみで表示）
+                if (selectedTab == 1)
                 {
-                    supportedAvatarsSearch = newSupportedAvatarsSearch;
-                    currentPage = 0;
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.LabelField("対応アバター:", GUILayout.Width(100));
+                    var newSupportedAvatarsSearch = EditorGUILayout.TextField(
+                        searchViewModel.SearchCriteria.SupportedAvatarsSearch
+                    );
+                    if (
+                        newSupportedAvatarsSearch
+                        != searchViewModel.SearchCriteria.SupportedAvatarsSearch
+                    )
+                    {
+                        searchViewModel.SearchCriteria.SupportedAvatarsSearch =
+                            newSupportedAvatarsSearch;
+                        Repaint();
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
-                EditorGUILayout.EndHorizontal();
 
                 // タグ検索
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("タグ:", GUILayout.Width(100));
-                var newTagsSearch = EditorGUILayout.TextField(tagsSearch);
-                if (newTagsSearch != tagsSearch)
+                var newTagsSearch = EditorGUILayout.TextField(
+                    searchViewModel.SearchCriteria.TagsSearch
+                );
+                if (newTagsSearch != searchViewModel.SearchCriteria.TagsSearch)
                 {
-                    tagsSearch = newTagsSearch;
-                    currentPage = 0;
+                    searchViewModel.SearchCriteria.TagsSearch = newTagsSearch;
+                    Repaint();
                 }
                 EditorGUILayout.EndHorizontal();
 
                 // メモ検索
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.LabelField("メモ:", GUILayout.Width(100));
-                var newMemoSearch = EditorGUILayout.TextField(memoSearch);
-                if (newMemoSearch != memoSearch)
+                var newMemoSearch = EditorGUILayout.TextField(
+                    searchViewModel.SearchCriteria.MemoSearch
+                );
+                if (newMemoSearch != searchViewModel.SearchCriteria.MemoSearch)
                 {
-                    memoSearch = newMemoSearch;
-                    currentPage = 0;
+                    searchViewModel.SearchCriteria.MemoSearch = newMemoSearch;
+                    Repaint();
                 }
                 EditorGUILayout.EndHorizontal();
 
@@ -728,7 +764,7 @@ namespace UnityEditorAssetBrowser
                 items.AddRange(kaAvatarsDatabase.data);
             }
 
-            return SortItems(items.Where(IsItemMatchSearch).ToList());
+            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
         }
 
         /// <summary>
@@ -760,7 +796,7 @@ namespace UnityEditorAssetBrowser
                 items.AddRange(kaWearablesDatabase.data);
             }
 
-            return SortItems(items.Where(IsItemMatchSearch).ToList());
+            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
         }
 
         /// <summary>
@@ -797,7 +833,7 @@ namespace UnityEditorAssetBrowser
                 items.AddRange(kaWorldObjectsDatabase.data);
             }
 
-            return SortItems(items.Where(IsItemMatchSearch).ToList());
+            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
         }
 
         /// <summary>
@@ -824,401 +860,6 @@ namespace UnityEditorAssetBrowser
                 default:
                     return items;
             }
-        }
-
-        /// <summary>
-        /// 日付文字列をDateTimeに変換
-        /// </summary>
-        /// <param name="date">日付文字列</param>
-        /// <returns>DateTime</returns>
-        private static DateTime GetDate(string date)
-        {
-            try
-            {
-                if (date.All(char.IsDigit))
-                    return DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(date)).DateTime;
-
-                var allDigits = "";
-                foreach (var c in date)
-                {
-                    if (char.IsDigit(c))
-                        allDigits += c;
-                }
-
-                if (allDigits.Length != 14)
-                    return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
-
-                var year = allDigits.Substring(0, 4);
-                var month = allDigits.Substring(4, 2);
-                var day = allDigits.Substring(6, 2);
-                var hour = allDigits.Substring(8, 2);
-                var minute = allDigits.Substring(10, 2);
-                var second = allDigits.Substring(12, 2);
-
-                var dateTime = new DateTime(
-                    int.Parse(year),
-                    int.Parse(month),
-                    int.Parse(day),
-                    int.Parse(hour),
-                    int.Parse(minute),
-                    int.Parse(second),
-                    DateTimeKind.Unspecified
-                );
-
-                // ローカルのタイムゾーンの時間をUTCに変換
-                var utcDateTime = TimeZoneInfo.ConvertTimeToUtc(dateTime, TimeZoneInfo.Local);
-
-                return utcDateTime;
-            }
-            catch
-            {
-                return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
-            }
-        }
-
-        /// <summary>
-        /// アイテムの作成日を取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作成日（UnixTimeMilliseconds）</returns>
-        private long GetCreatedDate(object item)
-        {
-            if (item is AvatarExplorerItem aeItem)
-            {
-                if (aeItem.CreatedDate == default)
-                    return 0;
-
-                // 日付文字列をUTCのDateTimeに変換
-                var utcDateTime = GetDate(aeItem.CreatedDate.ToString());
-
-                // UTCのDateTimeをUnixTimeMillisecondsに変換
-                return new DateTimeOffset(utcDateTime, TimeSpan.Zero).ToUnixTimeMilliseconds();
-            }
-            else if (item is KonoAssetAvatarItem kaItem)
-            {
-                return kaItem.description.createdAt;
-            }
-            else if (item is KonoAssetWearableItem wearableItem)
-            {
-                return wearableItem.description.createdAt;
-            }
-            else if (item is KonoAssetWorldObjectItem worldItem)
-            {
-                return worldItem.description.createdAt;
-            }
-            return 0;
-        }
-
-        /// <summary>
-        /// アイテムのタイトルを取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>タイトル</returns>
-        private string GetTitle(object item)
-        {
-            if (item is AvatarExplorerItem aeItem)
-            {
-                return aeItem.Title;
-            }
-            else if (item is KonoAssetAvatarItem kaItem)
-            {
-                return kaItem.description.name;
-            }
-            else if (item is KonoAssetWearableItem wearableItem)
-            {
-                return wearableItem.description.name;
-            }
-            else if (item is KonoAssetWorldObjectItem worldItem)
-            {
-                return worldItem.description.name;
-            }
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// アイテムの作者名を取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作者名</returns>
-        private string GetAuthor(object item)
-        {
-            if (item is AvatarExplorerItem aeItem)
-            {
-                return aeItem.AuthorName;
-            }
-            else if (item is KonoAssetAvatarItem kaItem)
-            {
-                return kaItem.description.creator;
-            }
-            else if (item is KonoAssetWearableItem wearableItem)
-            {
-                return wearableItem.description.creator;
-            }
-            else if (item is KonoAssetWorldObjectItem worldItem)
-            {
-                return worldItem.description.creator;
-            }
-            return string.Empty;
-        }
-
-        /// <summary>
-        /// アイテムが検索条件に一致するかチェック
-        /// </summary>
-        private bool IsItemMatchSearch(object item)
-        {
-            // 基本検索（スペース区切りの複数キーワードに対応）
-            if (!string.IsNullOrEmpty(searchQuery))
-            {
-                var keywords = searchQuery.Split(
-                    new[] { ' ' },
-                    StringSplitOptions.RemoveEmptyEntries
-                );
-                bool matchesAllKeywords = true;
-
-                foreach (var keyword in keywords)
-                {
-                    bool matchesKeyword = false;
-
-                    // タイトル
-                    if (GetTitle(item).IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                        matchesKeyword = true;
-
-                    // 作者名
-                    if (GetAuthor(item).IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                        matchesKeyword = true;
-
-                    // カテゴリ
-                    if (
-                        item is AvatarExplorerItem aeItem
-                        && aeItem
-                            .GetCategoryName()
-                            .IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
-                    )
-                        matchesKeyword = true;
-
-                    // 対応アバター
-                    if (
-                        item is AvatarExplorerItem aeItem2
-                        && aeItem2.SupportedAvatars != null
-                        && aeItem2.SupportedAvatars.Any(avatar =>
-                            avatar.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
-                        )
-                    )
-                        matchesKeyword = true;
-
-                    // タグ
-                    if (
-                        item is KonoAssetAvatarItem kaItem
-                        && kaItem.description.tags != null
-                        && kaItem.description.tags.Any(tag =>
-                            tag.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
-                        )
-                    )
-                        matchesKeyword = true;
-
-                    // メモ
-                    if (
-                        item is AvatarExplorerItem aeItem3
-                        && !string.IsNullOrEmpty(aeItem3.Memo)
-                        && aeItem3.Memo.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
-                    )
-                        matchesKeyword = true;
-                    else if (
-                        item is KonoAssetAvatarItem kaItem2
-                        && !string.IsNullOrEmpty(kaItem2.description.memo)
-                        && kaItem2.description.memo.IndexOf(
-                            keyword,
-                            StringComparison.OrdinalIgnoreCase
-                        ) >= 0
-                    )
-                        matchesKeyword = true;
-                    else if (
-                        item is KonoAssetWearableItem wearableItem
-                        && !string.IsNullOrEmpty(wearableItem.description.memo)
-                        && wearableItem.description.memo.IndexOf(
-                            keyword,
-                            StringComparison.OrdinalIgnoreCase
-                        ) >= 0
-                    )
-                        matchesKeyword = true;
-                    else if (
-                        item is KonoAssetWorldObjectItem worldItem
-                        && !string.IsNullOrEmpty(worldItem.description.memo)
-                        && worldItem.description.memo.IndexOf(
-                            keyword,
-                            StringComparison.OrdinalIgnoreCase
-                        ) >= 0
-                    )
-                        matchesKeyword = true;
-
-                    if (!matchesKeyword)
-                    {
-                        matchesAllKeywords = false;
-                        break;
-                    }
-                }
-
-                if (!matchesAllKeywords)
-                    return false;
-            }
-
-            // 詳細検索
-            if (showAdvancedSearch)
-            {
-                // タイトル検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(titleSearch))
-                {
-                    var titleKeywords = titleSearch.Split(
-                        new[] { ' ' },
-                        StringSplitOptions.RemoveEmptyEntries
-                    );
-                    foreach (var keyword in titleKeywords)
-                    {
-                        if (GetTitle(item).IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
-                            return false;
-                    }
-                }
-
-                // 作者名検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(authorSearch))
-                {
-                    var authorKeywords = authorSearch.Split(
-                        new[] { ' ' },
-                        StringSplitOptions.RemoveEmptyEntries
-                    );
-                    foreach (var keyword in authorKeywords)
-                    {
-                        if (
-                            GetAuthor(item).IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0
-                        )
-                            return false;
-                    }
-                }
-
-                // カテゴリ検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(categorySearch))
-                {
-                    if (item is AvatarExplorerItem aeItem)
-                    {
-                        var categoryName = aeItem.GetCategoryName();
-                        var categoryKeywords = categorySearch.Split(
-                            new[] { ' ' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-                        foreach (var keyword in categoryKeywords)
-                        {
-                            if (
-                                categoryName.IndexOf(keyword, StringComparison.OrdinalIgnoreCase)
-                                < 0
-                            )
-                                return false;
-                        }
-                    }
-                }
-
-                // 対応アバター検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(supportedAvatarsSearch))
-                {
-                    if (item is AvatarExplorerItem aeItem && aeItem.SupportedAvatars != null)
-                    {
-                        var avatarKeywords = supportedAvatarsSearch.Split(
-                            new[] { ' ' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-                        foreach (var keyword in avatarKeywords)
-                        {
-                            bool found = false;
-                            foreach (var avatar in aeItem.SupportedAvatars)
-                            {
-                                if (
-                                    avatar.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
-                                )
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found)
-                                return false;
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                // タグ検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(tagsSearch))
-                {
-                    if (item is KonoAssetAvatarItem kaItem && kaItem.description.tags != null)
-                    {
-                        var tagKeywords = tagsSearch.Split(
-                            new[] { ' ' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-                        foreach (var keyword in tagKeywords)
-                        {
-                            bool found = false;
-                            foreach (var tag in kaItem.description.tags)
-                            {
-                                if (tag.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0)
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found)
-                                return false;
-                        }
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                // メモ検索（スペース区切りでAND検索）
-                if (!string.IsNullOrEmpty(memoSearch))
-                {
-                    var memoKeywords = memoSearch.Split(
-                        new[] { ' ' },
-                        StringSplitOptions.RemoveEmptyEntries
-                    );
-
-                    string? memo = null;
-
-                    if (item is AvatarExplorerItem aeItem)
-                    {
-                        memo = aeItem.Memo;
-                    }
-                    else if (item is KonoAssetAvatarItem kaItem)
-                    {
-                        memo = kaItem.description.memo;
-                    }
-                    else if (item is KonoAssetWearableItem wearableItem)
-                    {
-                        memo = wearableItem.description.memo;
-                    }
-                    else if (item is KonoAssetWorldObjectItem worldItem)
-                    {
-                        memo = worldItem.description.memo;
-                    }
-
-                    if (string.IsNullOrEmpty(memo))
-                    {
-                        return false;
-                    }
-
-                    foreach (var keyword in memoKeywords)
-                    {
-                        if (memo.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
-                            return false;
-                    }
-                }
-            }
-
-            return true;
         }
 
         #region Item Display Methods
@@ -1416,7 +1057,7 @@ namespace UnityEditorAssetBrowser
                     var item = aeDatabase.Items.FirstOrDefault(i => i.Title == title);
                     if (item != null)
                     {
-                        GUILayout.Label($"カテゴリ: {item.GetCategoryName()}");
+                        GUILayout.Label($"カテゴリ: {item.GetAECategoryName()}");
                     }
                     else
                     {
@@ -1730,12 +1371,12 @@ namespace UnityEditorAssetBrowser
             // データベースを再読み込み
             if (!string.IsNullOrEmpty(aeDatabasePath))
             {
-                DatabaseService.LoadAEDatabase();
+                LoadAndDisplayAEDatabase();
             }
 
             if (!string.IsNullOrEmpty(kaDatabasePath))
             {
-                DatabaseService.LoadKADatabase();
+                LoadAndDisplayKADatabase();
             }
 
             // ページをリセット
@@ -1797,26 +1438,88 @@ namespace UnityEditorAssetBrowser
             }
         }
 
-        private void LoadAEDatabase()
+        /// <summary>
+        /// AEデータベースの読み込みと表示
+        /// </summary>
+        private void LoadAndDisplayAEDatabase()
         {
             if (string.IsNullOrEmpty(aeDatabasePath))
                 return;
 
             DatabaseService.SetAEDatabasePath(aeDatabasePath);
-            DatabaseService.LoadAEDatabase();
+            DatabaseService.LoadAndUpdateAEDatabase();
             aeDatabase = DatabaseService.GetAEDatabase();
+
+            // パスが空欄になった場合（エラー時）に更新
+            aeDatabasePath = DatabaseService.GetAEDatabasePath();
         }
 
-        private void LoadKADatabase()
+        /// <summary>
+        /// KAデータベースの読み込みと表示
+        /// </summary>
+        private void LoadAndDisplayKADatabase()
         {
             if (string.IsNullOrEmpty(kaDatabasePath))
                 return;
 
             DatabaseService.SetKADatabasePath(kaDatabasePath);
-            DatabaseService.LoadKADatabase();
+            DatabaseService.LoadAndUpdateKADatabase();
             kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
             kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
             kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
+
+            // パスが空欄になった場合（エラー時）に更新
+            kaDatabasePath = DatabaseService.GetKADatabasePath();
+        }
+
+        /// <summary>
+        /// アイテムのタイトルを取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>タイトル</returns>
+        private string GetTitle(object item)
+        {
+            return assetItem.GetTitle(item);
+        }
+
+        /// <summary>
+        /// アイテムの作者名を取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>作者名</returns>
+        private string GetAuthor(object item)
+        {
+            return assetItem.GetAuthor(item);
+        }
+
+        /// <summary>
+        /// アイテムのカテゴリー名を取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>カテゴリー名</returns>
+        private string GetAECategoryName(object item)
+        {
+            return assetItem.GetAECategoryName(item);
+        }
+
+        /// <summary>
+        /// アイテムの作成日を取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>作成日（UnixTimeMilliseconds）</returns>
+        private long GetCreatedDate(object item)
+        {
+            return assetItem.GetCreatedDate(item);
+        }
+
+        /// <summary>
+        /// アイテムのメモを取得
+        /// </summary>
+        /// <param name="item">アイテム</param>
+        /// <returns>メモ</returns>
+        private string GetMemo(object item)
+        {
+            return assetItem.GetMemo(item);
         }
         #endregion
     }

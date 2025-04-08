@@ -19,38 +19,60 @@ namespace UnityEditorAssetBrowser.Helper
     public static class AEDatabaseHelper
     {
         /// <summary>
-        /// AEデータベースを読み込む
+        /// AvatarExplorerのデータベースファイルを読み込む
         /// </summary>
         /// <param name="path">データベースのパス</param>
-        /// <returns>読み込んだデータベース、失敗時はnull</returns>
-        public static AvatarExplorerDatabase? LoadAEDatabase(string path)
+        /// <returns>読み込んだデータベース</returns>
+        public static AvatarExplorerDatabase? LoadAEDatabaseFile(string path)
         {
             try
             {
-                var jsonPath = Path.Combine(path, "ItemsData.json");
-                if (!File.Exists(jsonPath))
+                // パスがディレクトリの場合は、ItemsData.jsonを探す
+                string jsonPath;
+                if (Directory.Exists(path))
                 {
-                    Debug.LogWarning($"ItemsData.json not found at: {jsonPath}");
-                    return null;
+                    jsonPath = Path.Combine(path, "ItemsData.json");
+                    if (!File.Exists(jsonPath))
+                    {
+                        Debug.LogWarning($"AE database file not found at: {jsonPath}");
+                        return null;
+                    }
+                }
+                else
+                {
+                    // パスがファイルの場合はそのまま使用
+                    jsonPath = path;
+                    if (!File.Exists(jsonPath))
+                    {
+                        Debug.LogWarning($"AE database file not found at: {jsonPath}");
+                        return null;
+                    }
                 }
 
                 var json = File.ReadAllText(jsonPath);
-                var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(
-                    json,
-                    JsonSettings.Settings
-                );
 
-                if (items == null)
+                // JSONが配列形式かどうかを確認
+                if (json.TrimStart().StartsWith("["))
                 {
-                    Debug.LogWarning("Failed to deserialize AE database");
-                    return null;
+                    // 配列形式の場合は、AvatarExplorerItem[]としてデシリアライズしてから
+                    // AvatarExplorerDatabaseに変換
+                    var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(json);
+                    if (items != null)
+                    {
+                        return new AvatarExplorerDatabase(items);
+                    }
+                }
+                else
+                {
+                    // オブジェクト形式の場合は、そのままAvatarExplorerDatabaseとしてデシリアライズ
+                    return JsonConvert.DeserializeObject<AvatarExplorerDatabase>(json);
                 }
 
-                return new AvatarExplorerDatabase { Items = new List<AvatarExplorerItem>(items) };
+                return null;
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Error loading AE database: {ex.Message}");
+                Debug.LogError($"Failed to load AE database: {ex.Message}");
                 return null;
             }
         }

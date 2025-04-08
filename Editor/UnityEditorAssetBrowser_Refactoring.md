@@ -1,4 +1,4 @@
-# UnityEditorAssetBrowser リファクタリング提案
+# UnityEditorAssetBrowser リファクタリング計画
 
 ## 1. 現状の課題
 
@@ -32,24 +32,34 @@ UnityEditorAssetBrowser/
 │   ├── Views/
 │   │   ├── AssetItemView.cs
 │   │   ├── SearchView.cs
-│   │   └── PaginationView.cs
+│   │   ├── PaginationView.cs
+│   │   └── MainView.cs
 │   ├── Models/
 │   │   ├── AssetItem.cs
 │   │   ├── SearchCriteria.cs
-│   │   └── PaginationInfo.cs
+│   │   ├── PaginationInfo.cs
+│   │   ├── AvatarExplorerModels.cs ✅
+│   │   └── KonoAssetModels.cs ✅
 │   ├── Services/
-│   │   ├── DatabaseService.cs
-│   │   ├── ImageService.cs
-│   │   └── UnityPackageService.cs
+│   │   ├── DatabaseService.cs ✅
+│   │   ├── ImageService.cs ✅
+│   │   └── UnityPackageService.cs ✅
 │   └── Helpers/
-│       ├── AEDatabaseHelper.cs
-│       ├── KADatabaseHelper.cs
-│       └── UnityPackageHelper.cs
+│       ├── AEDatabaseHelper.cs ✅
+│       ├── KADatabaseHelper.cs ✅
+│       ├── JsonSettings.cs ✅
+│       └── CustomDateTimeConverter.cs ✅
 ```
 
 ## 3. クラス設計
 
-### 3.1 ViewModels
+### 3.1 Windows
+- **UnityEditorAssetBrowserWindow**
+  - メインウィンドウの初期化とイベント処理
+  - 各コンポーネントの統合
+  - シーン変更イベントの処理
+
+### 3.2 ViewModels
 - **AssetBrowserViewModel**
   - メインのビジネスロジック
   - データの管理と操作
@@ -65,7 +75,13 @@ UnityEditorAssetBrowser/
   - ページネーション情報の管理
   - ページ切り替えロジック
 
-### 3.2 Views
+### 3.3 Views
+- **MainView**
+  - メインウィンドウのUI
+  - タブバーの表示
+  - コンテンツエリアの表示
+  - スクロールビューの管理
+
 - **AssetItemView**
   - アセットアイテムの表示
   - 画像表示
@@ -74,33 +90,68 @@ UnityEditorAssetBrowser/
 - **SearchView**
   - 検索UI
   - フィルターUI
+  - 検索結果件数の表示
 
 - **PaginationView**
   - ページネーションUI
+  - ページ切り替えボタン
 
-### 3.3 Models
+### 3.4 Models
 - **AssetItem**
   - アセット情報のデータモデル
   - AEとKAのデータを統合
 
 - **SearchCriteria**
   - 検索条件のデータモデル
+  - キーワード、フィルター、ソート条件
 
 - **PaginationInfo**
   - ページネーション情報のデータモデル
+  - 現在のページ、総ページ数、アイテム数
 
-### 3.4 Services
-- **DatabaseService**
-  - データベース操作
-  - AEとKAのデータ統合
+- **AvatarExplorerModels** ✅
+  - AEデータベースモデル ✅
+  - AEアイテムモデル ✅
+  - カテゴリー名の取得 ✅
 
-- **ImageService**
-  - 画像の読み込みと管理
-  - キャッシュ管理
+- **KonoAssetModels** ✅
+  - KAデータベースモデル ✅
+  - KAアイテムモデル（アバター、ウェアラブル、ワールドオブジェクト） ✅
+  - KAアイテムの詳細情報モデル ✅
 
-- **UnityPackageService**
-  - UnityPackageの操作
-  - インポート処理
+### 3.5 Services
+- **DatabaseService** ✅
+  - データベース操作の統合 ✅
+  - AEとKAのデータベース管理 ✅
+  - 設定の保存と読み込み ✅
+
+- **ImageService** ✅
+  - 画像の読み込みと管理 ✅
+  - キャッシュ管理 ✅
+  - 画像パスの取得 ✅
+
+- **UnityPackageService** ✅
+  - UnityPackageの操作 ✅
+  - インポート処理 ✅
+  - パッケージ情報の取得 ✅
+  - パッケージファイルの検索と解析 ✅
+
+### 3.6 Helpers
+- **AEDatabaseHelper** ✅
+  - AEデータベースの読み込みと保存 ✅
+  - ファイル操作の抽象化 ✅
+
+- **KADatabaseHelper** ✅
+  - KAデータベースの読み込みと保存 ✅
+  - ファイル操作の抽象化 ✅
+
+- **JsonSettings** ✅
+  - JSONシリアライズ設定の提供 ✅
+  - 日付フォーマットの設定 ✅
+
+- **CustomDateTimeConverter** ✅
+  - DateTime型のJSON変換 ✅
+  - 日付フォーマットの処理 ✅
 
 ## 4. 改善効果
 
@@ -141,7 +192,7 @@ UnityEditorAssetBrowser/
 - **OnEnable** - ウィンドウが有効になった時の処理
 - **OnDisable** - ウィンドウが無効になった時の処理
 - **OnHierarchyChanged** - シーン階層が変更された時の処理
-- **OnGUI** - GUIの描画処理
+- **OnGUI** - GUIの描画処理（MainViewに委譲）
 
 ### 7.2 ViewModels/AssetBrowserViewModel.cs
 - **GetCurrentTabItemCount** - 現在のタブのアイテム数を取得
@@ -166,8 +217,22 @@ UnityEditorAssetBrowser/
 ### 7.4 ViewModels/PaginationViewModel.cs
 - **GetTotalPages** - 総ページ数を取得
 - **GetCurrentTabItemCount** - 現在のタブのアイテム数を取得
+- **SetCurrentPage** - 現在のページを設定
+- **GetCurrentPage** - 現在のページを取得
+- **GetPageItems** - 現在のページのアイテムを取得
 
-### 7.5 Views/AssetItemView.cs
+### 7.5 Views/MainView.cs
+- **DrawMainWindow** - メインウィンドウの描画
+- **DrawTabBar** - タブバーの描画
+- **DrawContentArea** - コンテンツエリアの描画
+- **DrawScrollView** - スクロールビューの描画
+- **DrawCurrentTabContent** - 現在のタブのコンテンツを描画
+- **InitializeStyles** - GUIスタイルの初期化
+- **ShowAvatarsContent** - アバターコンテンツの表示
+- **ShowItemsContent** - アバター関連アイテムコンテンツの表示
+- **ShowWorldObjectsContent** - ワールドオブジェクトコンテンツの表示
+
+### 7.6 Views/AssetItemView.cs
 - **ShowAvatarItem** - AEアバターアイテムの表示
 - **ShowKonoAssetItem** - KAアバターアイテムの表示
 - **ShowKonoAssetWearableItem** - KAウェアラブルアイテムの表示
@@ -179,67 +244,81 @@ UnityEditorAssetBrowser/
 - **DrawUnityPackageSection** - UnityPackageセクションの描画
 - **DrawUnityPackageItem** - UnityPackageアイテムの描画
 
-### 7.6 Views/SearchView.cs
+### 7.7 Views/SearchView.cs
 - **DrawSearchField** - 検索フィールドの描画
 - **DrawSearchResultCount** - 検索結果件数の描画
 - **DrawDatabasePathFields** - データベースパス入力フィールドの描画
 - **DrawDatabasePathField** - 個別のデータベースパス入力フィールドの描画
 
-### 7.7 Views/PaginationView.cs
+### 7.8 Views/PaginationView.cs
 - **DrawPaginationButtons** - ページネーションボタンの描画
 
-### 7.8 Views/MainView.cs
-- **DrawMainWindow** - メインウィンドウの描画
-- **DrawTabBar** - タブバーの描画
-- **DrawContentArea** - コンテンツエリアの描画
-- **DrawScrollView** - スクロールビューの描画
-- **DrawCurrentTabContent** - 現在のタブのコンテンツを描画
-- **InitializeStyles** - GUIスタイルの初期化
-- **ShowAvatarsContent** - アバターコンテンツの表示
-- **ShowItemsContent** - アバター関連アイテムコンテンツの表示
-- **ShowWorldObjectsContent** - ワールドオブジェクトコンテンツの表示
-
 ### 7.9 Services/DatabaseService.cs ✅
-- **LoadAEDatabase** - AEデータベースの読み込み
-- **LoadKADatabase** - KAデータベースの読み込み
-- **LoadKADatabaseFile** - KAデータベースファイルの読み込み
-- **GetItemCount** - データベースのアイテム数を取得
-- **LoadSettings** - 設定の読み込み
-- **SaveSettings** - 設定の保存
+- **LoadAndUpdateAEDatabase** ✅ - AEデータベースの読み込みと更新
+- **LoadAndUpdateKADatabase** ✅ - KAデータベースの読み込みと更新
+- **GetAEDatabase** ✅ - AEデータベースの取得
+- **GetKAAvatarsDatabase** ✅ - KAアバターデータベースの取得
+- **GetKAWearablesDatabase** ✅ - KAウェアラブルデータベースの取得
+- **GetKAWorldObjectsDatabase** ✅ - KAワールドオブジェクトデータベースの取得
+- **SetAEDatabasePath** ✅ - AEデータベースパスの設定
+- **SetKADatabasePath** ✅ - KAデータベースパスの設定
+- **LoadSettings** ✅ - 設定の読み込み
+- **SaveSettings** ✅ - 設定の保存
 
 ### 7.10 Services/ImageService.cs ✅
-- **LoadTexture** - テクスチャを読み込む
-- **GetItemImagePath** - アイテムの画像パスを取得
+- **LoadTexture** ✅ - テクスチャを読み込む
+- **GetItemImagePath** ✅ - アイテムの画像パスを取得
+- **ClearCache** ✅ - キャッシュをクリアする
 
 ### 7.11 Services/UnityPackageService.cs ✅
-- **FindUnityPackages** - 指定されたディレクトリ内のUnityPackageファイルを検索する
+- **FindUnityPackages** ✅ - 指定されたディレクトリ内のUnityPackageファイルを検索する
+- **ImportUnityPackage** ✅ - UnityPackageをインポートする
 
-### 7.12 Helpers/AEDatabaseHelper.cs
-- **LoadAEDatabase** - AEデータベースを読み込む
-- **SaveAEDatabase** - AEデータベースを保存する
+### 7.12 Helpers/AEDatabaseHelper.cs ✅
+- **LoadAEDatabaseFile** ✅ - AEデータベースファイルを読み込む
+- **SaveAEDatabase** ✅ - AEデータベースを保存する
 
-### 7.13 Helpers/KADatabaseHelper.cs
-- **LoadKADatabase** - KAデータベースを読み込む
-- **SaveKADatabase** - KAデータベースを保存する
+### 7.13 Helpers/KADatabaseHelper.cs ✅
+- **LoadKADatabaseFiles** ✅ - KAデータベースファイルを読み込む
+- **SaveKADatabase** ✅ - KAデータベースを保存する
 
-### 7.14 Helpers/JsonSettings.cs
-- **Settings** - JSONシリアライズ設定を提供する
+### 7.14 Helpers/JsonSettings.cs ✅
+- **Settings** ✅ - JSONシリアライズ設定を提供する
 
-### 7.15 Helpers/CustomDateTimeConverter.cs
-- **ReadJson** - JSONからDateTimeを読み込む
-- **WriteJson** - DateTimeをJSONに書き込む
+### 7.15 Helpers/CustomDateTimeConverter.cs ✅
+- **ReadJson** ✅ - JSONからDateTimeを読み込む
+- **WriteJson** ✅ - DateTimeをJSONに書き込む
 
-### 7.16 Models/AssetItem.cs
-- **GetCategoryName** - カテゴリー名を取得する
+### 7.16 Models/AssetItem.cs ✅
+- **GetCategoryName** ✅ - カテゴリー名を取得する
+- **GetTitle** ✅ - タイトルを取得する
+- **GetAuthor** ✅ - 作者名を取得する
+- **GetCreatedDate** ✅ - 作成日を取得する
+- **GetMemo** ✅ - メモを取得する
 
-### 7.17 Models/KonoAssetDatabase.cs
-- **コンストラクタ** - 基本データベースモデルのコンストラクタ
+### 7.17 Models/SearchCriteria.cs
+- **IsMatch** - 検索条件に一致するかチェックする
+- **GetKeywords** - キーワードを取得する
+- **GetFilters** - フィルターを取得する
+- **GetSortMethod** - ソート方法を取得する
 
-### 7.18 Models/KonoAssetAvatarsDatabase.cs
-- **コンストラクタ** - アバター用データベースのコンストラクタ
+### 7.18 Models/PaginationInfo.cs
+- **GetCurrentPage** - 現在のページを取得する
+- **GetTotalPages** - 総ページ数を取得する
+- **GetItemsPerPage** - 1ページあたりのアイテム数を取得する
+- **GetPageItems** - 現在のページのアイテムを取得する
 
-### 7.19 Models/KonoAssetWearablesDatabase.cs
-- **コンストラクタ** - ウェアラブル用データベースのコンストラクタ
+### 7.19 Models/AvatarExplorerModels.cs ✅
+- **AvatarExplorerDatabase** ✅ - AEデータベースモデル
+- **AvatarExplorerItem** ✅ - AEアイテムモデル
+- **GetCategoryName** ✅ - カテゴリー名を取得する
 
-### 7.20 Models/KonoAssetWorldObjectsDatabase.cs
-- **コンストラクタ** - ワールドオブジェクト用データベースのコンストラクタ 
+### 7.20 Models/KonoAssetModels.cs ✅
+- **KonoAssetDatabase** ✅ - KA基本データベースモデル
+- **KonoAssetAvatarsDatabase** ✅ - KAアバターデータベースモデル
+- **KonoAssetWearablesDatabase** ✅ - KAウェアラブルデータベースモデル
+- **KonoAssetWorldObjectsDatabase** ✅ - KAワールドオブジェクトデータベースモデル
+- **KonoAssetAvatarItem** ✅ - KAアバターアイテムモデル
+- **KonoAssetWearableItem** ✅ - KAウェアラブルアイテムモデル
+- **KonoAssetWorldObjectItem** ✅ - KAワールドオブジェクトアイテムモデル
+- **KonoAssetDescription** ✅ - KAアイテムの詳細情報モデル 

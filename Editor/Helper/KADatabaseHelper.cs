@@ -28,78 +28,43 @@ namespace UnityEditorAssetBrowser.Helper
         }
 
         /// <summary>
-        /// KonoAssetデータベースを読み込む
+        /// KonoAssetのデータベースを読み込む
         /// </summary>
-        /// <param name="metadataPath">メタデータパス</param>
+        /// <param name="metadataPath">メタデータのパス</param>
         /// <returns>読み込んだデータベース</returns>
-        public static DatabaseLoadResult? LoadKADatabase(string metadataPath)
+        public static DatabaseLoadResult LoadKADatabaseFiles(string metadataPath)
         {
             var result = new DatabaseLoadResult();
 
-            // アバターデータベースの読み込み
+            // avatars.jsonの読み込み
             var avatarsPath = Path.Combine(metadataPath, "avatars.json");
             if (File.Exists(avatarsPath))
             {
-                var baseDb = LoadKADatabaseFile(avatarsPath);
-                if (baseDb != null)
-                {
-                    result.avatarsDatabase =
-                        JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(
-                            JsonConvert.SerializeObject(baseDb)
-                        );
-                }
+                var json = File.ReadAllText(avatarsPath);
+                result.avatarsDatabase = JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(
+                    json
+                );
             }
 
-            // ウェアラブルデータベースの読み込み
+            // avatarWearables.jsonの読み込み
             var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
             if (File.Exists(wearablesPath))
             {
-                var baseDb = LoadKADatabaseFile(wearablesPath);
-                if (baseDb != null)
-                {
-                    result.wearablesDatabase =
-                        JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(
-                            JsonConvert.SerializeObject(baseDb)
-                        );
-                }
+                var json = File.ReadAllText(wearablesPath);
+                result.wearablesDatabase =
+                    JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(json);
             }
 
-            // ワールドオブジェクトデータベースの読み込み
+            // worldObjects.jsonの読み込み
             var worldObjectsPath = Path.Combine(metadataPath, "worldObjects.json");
             if (File.Exists(worldObjectsPath))
             {
-                var baseDb = LoadKADatabaseFile(worldObjectsPath);
-                if (baseDb != null)
-                {
-                    result.worldObjectsDatabase =
-                        JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(
-                            JsonConvert.SerializeObject(baseDb)
-                        );
-                }
+                var json = File.ReadAllText(worldObjectsPath);
+                result.worldObjectsDatabase =
+                    JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(json);
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// KonoAssetデータベースファイルを読み込む
-        /// </summary>
-        /// <param name="filePath">ファイルパス</param>
-        /// <returns>読み込んだデータベース</returns>
-        private static object? LoadKADatabaseFile(string filePath)
-        {
-            try
-            {
-                var json = File.ReadAllText(filePath);
-                return JsonConvert.DeserializeObject(json);
-            }
-            catch (Exception ex)
-            {
-                UnityEngine.Debug.LogError(
-                    $"Failed to load database file: {filePath}\n{ex.Message}"
-                );
-                return null;
-            }
         }
 
         /// <summary>
