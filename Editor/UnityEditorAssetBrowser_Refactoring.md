@@ -24,26 +24,28 @@
 UnityEditorAssetBrowser/
 ├── Editor/
 │   ├── Windows/
-│   │   └── UnityEditorAssetBrowserWindow.cs
+│   │   └── UnityEditorAssetBrowserWindow.cs ❌
 │   ├── ViewModels/
-│   │   ├── AssetBrowserViewModel.cs
-│   │   ├── SearchViewModel.cs
-│   │   └── PaginationViewModel.cs
+│   │   ├── AssetBrowserViewModel.cs ❌
+│   │   ├── SearchViewModel.cs ✅
+│   │   ├── SearchCriteriaManager.cs ✅
+│   │   └── PaginationViewModel.cs ❌
 │   ├── Views/
-│   │   ├── AssetItemView.cs
-│   │   ├── SearchView.cs
-│   │   ├── PaginationView.cs
-│   │   └── MainView.cs
+│   │   ├── AssetItemView.cs ❌
+│   │   ├── SearchView.cs ❌
+│   │   ├── PaginationView.cs ❌
+│   │   └── MainView.cs ❌
 │   ├── Models/
-│   │   ├── AssetItem.cs
-│   │   ├── SearchCriteria.cs
-│   │   ├── PaginationInfo.cs
+│   │   ├── AssetItem.cs ✅
+│   │   ├── SearchCriteria.cs ✅
+│   │   ├── PaginationInfo.cs ❌
 │   │   ├── AvatarExplorerModels.cs ✅
 │   │   └── KonoAssetModels.cs ✅
 │   ├── Services/
 │   │   ├── DatabaseService.cs ✅
 │   │   ├── ImageService.cs ✅
-│   │   └── UnityPackageService.cs ✅
+│   │   ├── UniryPackageService.cs ✅ (命名ミスあり)
+│   │   └── ItemSearchService.cs ✅
 │   └── Helpers/
 │       ├── AEDatabaseHelper.cs ✅
 │       ├── KADatabaseHelper.cs ✅
@@ -54,58 +56,62 @@ UnityEditorAssetBrowser/
 ## 3. クラス設計
 
 ### 3.1 Windows
-- **UnityEditorAssetBrowserWindow**
+- **UnityEditorAssetBrowserWindow** ❌
   - メインウィンドウの初期化とイベント処理
   - 各コンポーネントの統合
   - シーン変更イベントの処理
 
 ### 3.2 ViewModels
-- **AssetBrowserViewModel**
+- **AssetBrowserViewModel** ❌
   - メインのビジネスロジック
   - データの管理と操作
   - 検索とフィルタリング
   - ページネーション
 
-- **SearchViewModel**
+- **SearchViewModel** ✅
   - 検索条件の管理
   - 検索ロジック
   - フィルタリング
 
-- **PaginationViewModel**
+- **SearchCriteriaManager** ✅
+  - タブごとの検索条件の管理
+  - 検索条件の保存と読み込み
+
+- **PaginationViewModel** ❌
   - ページネーション情報の管理
   - ページ切り替えロジック
 
 ### 3.3 Views
-- **MainView**
+- **MainView** ❌
   - メインウィンドウのUI
   - タブバーの表示
   - コンテンツエリアの表示
   - スクロールビューの管理
 
-- **AssetItemView**
+- **AssetItemView** ❌
   - アセットアイテムの表示
   - 画像表示
   - UnityPackage表示
 
-- **SearchView**
+- **SearchView** ❌
   - 検索UI
   - フィルターUI
   - 検索結果件数の表示
 
-- **PaginationView**
+- **PaginationView** ❌
   - ページネーションUI
   - ページ切り替えボタン
 
 ### 3.4 Models
-- **AssetItem**
+- **AssetItem** ✅
   - アセット情報のデータモデル
   - AEとKAのデータを統合
 
-- **SearchCriteria**
+- **SearchCriteria** ✅
   - 検索条件のデータモデル
   - キーワード、フィルター、ソート条件
 
-- **PaginationInfo**
+- **PaginationInfo** ❌
   - ページネーション情報のデータモデル
   - 現在のページ、総ページ数、アイテム数
 
@@ -130,11 +136,16 @@ UnityEditorAssetBrowser/
   - キャッシュ管理 ✅
   - 画像パスの取得 ✅
 
-- **UnityPackageService** ✅
+- **UniryPackageService** ✅ (命名ミスあり)
   - UnityPackageの操作 ✅
   - インポート処理 ✅
   - パッケージ情報の取得 ✅
   - パッケージファイルの検索と解析 ✅
+
+- **ItemSearchService** ✅
+  - アイテム検索の実装 ✅
+  - 基本検索と詳細検索 ✅
+  - 検索条件に基づくフィルタリング ✅
 
 ### 3.6 Helpers
 - **AEDatabaseHelper** ✅
@@ -172,11 +183,11 @@ UnityEditorAssetBrowser/
 
 ## 5. 実装手順
 
-1. 新しいディレクトリ構造の作成
-2. 基本クラスの実装
-3. 既存コードの段階的な移行
-4. テストの実装
-5. パフォーマンス最適化
+1. 新しいディレクトリ構造の作成 ✅
+2. 基本クラスの実装 ✅
+3. 既存コードの段階的な移行 ⏳
+4. テストの実装 ❌
+5. パフォーマンス最適化 ❌
 
 ## 6. 注意点
 
@@ -187,14 +198,14 @@ UnityEditorAssetBrowser/
 
 ## 7. 関数の割り当て
 
-### 7.1 Windows/UnityEditorAssetBrowserWindow.cs
+### 7.1 Windows/UnityEditorAssetBrowserWindow.cs ❌
 - **ShowWindow** - メニューからウィンドウを表示する
 - **OnEnable** - ウィンドウが有効になった時の処理
 - **OnDisable** - ウィンドウが無効になった時の処理
 - **OnHierarchyChanged** - シーン階層が変更された時の処理
 - **OnGUI** - GUIの描画処理（MainViewに委譲）
 
-### 7.2 ViewModels/AssetBrowserViewModel.cs
+### 7.2 ViewModels/AssetBrowserViewModel.cs ❌
 - **GetCurrentTabItemCount** - 現在のタブのアイテム数を取得
 - **GetTotalPages** - 総ページ数を取得
 - **GetFilteredAvatars** - フィルターされたアバターリストを取得
@@ -206,22 +217,23 @@ UnityEditorAssetBrowser/
 - **RefreshDatabases** - データベースを再読み込みする
 - **RefreshImageCache** - 画像キャッシュを再取得する
 
-### 7.3 ViewModels/SearchViewModel.cs
+### 7.3 ViewModels/SearchViewModel.cs ✅
 - **IsItemMatchSearch** - アイテムが検索条件に一致するかチェック
-- **GetTitle** - アイテムのタイトルを取得
-- **GetAuthor** - アイテムの作者名を取得
-- **GetCreatedDate** - アイテムの作成日を取得
-- **GetDate** - 日付文字列をDateTimeに変換
-- **IsWorldCategory** - カテゴリーがワールド関連かどうかを判定
+- **SetCurrentTab** - 現在のタブを設定
 
-### 7.4 ViewModels/PaginationViewModel.cs
+### 7.4 ViewModels/SearchCriteriaManager.cs ✅
+- **SetCurrentTab** - 現在のタブを設定
+- **SaveCurrentTabCriteria** - 現在のタブの検索条件を保存
+- **LoadTabCriteria** - タブの検索条件を読み込み
+
+### 7.5 ViewModels/PaginationViewModel.cs ❌
 - **GetTotalPages** - 総ページ数を取得
 - **GetCurrentTabItemCount** - 現在のタブのアイテム数を取得
 - **SetCurrentPage** - 現在のページを設定
 - **GetCurrentPage** - 現在のページを取得
 - **GetPageItems** - 現在のページのアイテムを取得
 
-### 7.5 Views/MainView.cs
+### 7.6 Views/MainView.cs ❌
 - **DrawMainWindow** - メインウィンドウの描画
 - **DrawTabBar** - タブバーの描画
 - **DrawContentArea** - コンテンツエリアの描画
@@ -232,7 +244,7 @@ UnityEditorAssetBrowser/
 - **ShowItemsContent** - アバター関連アイテムコンテンツの表示
 - **ShowWorldObjectsContent** - ワールドオブジェクトコンテンツの表示
 
-### 7.6 Views/AssetItemView.cs
+### 7.7 Views/AssetItemView.cs ❌
 - **ShowAvatarItem** - AEアバターアイテムの表示
 - **ShowKonoAssetItem** - KAアバターアイテムの表示
 - **ShowKonoAssetWearableItem** - KAウェアラブルアイテムの表示
@@ -244,16 +256,16 @@ UnityEditorAssetBrowser/
 - **DrawUnityPackageSection** - UnityPackageセクションの描画
 - **DrawUnityPackageItem** - UnityPackageアイテムの描画
 
-### 7.7 Views/SearchView.cs
+### 7.8 Views/SearchView.cs ❌
 - **DrawSearchField** - 検索フィールドの描画
 - **DrawSearchResultCount** - 検索結果件数の描画
 - **DrawDatabasePathFields** - データベースパス入力フィールドの描画
 - **DrawDatabasePathField** - 個別のデータベースパス入力フィールドの描画
 
-### 7.8 Views/PaginationView.cs
+### 7.9 Views/PaginationView.cs ❌
 - **DrawPaginationButtons** - ページネーションボタンの描画
 
-### 7.9 Services/DatabaseService.cs ✅
+### 7.10 Services/DatabaseService.cs ✅
 - **LoadAndUpdateAEDatabase** ✅ - AEデータベースの読み込みと更新
 - **LoadAndUpdateKADatabase** ✅ - KAデータベースの読み込みと更新
 - **GetAEDatabase** ✅ - AEデータベースの取得
@@ -265,55 +277,60 @@ UnityEditorAssetBrowser/
 - **LoadSettings** ✅ - 設定の読み込み
 - **SaveSettings** ✅ - 設定の保存
 
-### 7.10 Services/ImageService.cs ✅
+### 7.11 Services/ImageService.cs ✅
 - **LoadTexture** ✅ - テクスチャを読み込む
 - **GetItemImagePath** ✅ - アイテムの画像パスを取得
 - **ClearCache** ✅ - キャッシュをクリアする
 
-### 7.11 Services/UnityPackageService.cs ✅
+### 7.12 Services/UniryPackageService.cs ✅ (命名ミスあり)
 - **FindUnityPackages** ✅ - 指定されたディレクトリ内のUnityPackageファイルを検索する
 - **ImportUnityPackage** ✅ - UnityPackageをインポートする
 
-### 7.12 Helpers/AEDatabaseHelper.cs ✅
+### 7.13 Services/ItemSearchService.cs ✅
+- **IsItemMatchSearch** ✅ - アイテムが検索条件に一致するかチェック
+- **IsBasicSearchMatch** ✅ - 基本検索に一致するかチェック
+- **IsAdvancedSearchMatch** ✅ - 詳細検索に一致するかチェック
+
+### 7.14 Helpers/AEDatabaseHelper.cs ✅
 - **LoadAEDatabaseFile** ✅ - AEデータベースファイルを読み込む
 - **SaveAEDatabase** ✅ - AEデータベースを保存する
 
-### 7.13 Helpers/KADatabaseHelper.cs ✅
+### 7.15 Helpers/KADatabaseHelper.cs ✅
 - **LoadKADatabaseFiles** ✅ - KAデータベースファイルを読み込む
 - **SaveKADatabase** ✅ - KAデータベースを保存する
 
-### 7.14 Helpers/JsonSettings.cs ✅
+### 7.16 Helpers/JsonSettings.cs ✅
 - **Settings** ✅ - JSONシリアライズ設定を提供する
 
-### 7.15 Helpers/CustomDateTimeConverter.cs ✅
+### 7.17 Helpers/CustomDateTimeConverter.cs ✅
 - **ReadJson** ✅ - JSONからDateTimeを読み込む
 - **WriteJson** ✅ - DateTimeをJSONに書き込む
 
-### 7.16 Models/AssetItem.cs ✅
+### 7.18 Models/AssetItem.cs ✅
 - **GetCategoryName** ✅ - カテゴリー名を取得する
 - **GetTitle** ✅ - タイトルを取得する
 - **GetAuthor** ✅ - 作者名を取得する
 - **GetCreatedDate** ✅ - 作成日を取得する
 - **GetMemo** ✅ - メモを取得する
 
-### 7.17 Models/SearchCriteria.cs
-- **IsMatch** - 検索条件に一致するかチェックする
-- **GetKeywords** - キーワードを取得する
-- **GetFilters** - フィルターを取得する
-- **GetSortMethod** - ソート方法を取得する
+### 7.19 Models/SearchCriteria.cs ✅
+- **IsMatch** ✅ - 検索条件に一致するかチェックする
+- **GetKeywords** ✅ - キーワードを取得する
+- **GetFilters** ✅ - フィルターを取得する
+- **GetSortMethod** ✅ - ソート方法を取得する
 
-### 7.18 Models/PaginationInfo.cs
+### 7.20 Models/PaginationInfo.cs ❌
 - **GetCurrentPage** - 現在のページを取得する
 - **GetTotalPages** - 総ページ数を取得する
 - **GetItemsPerPage** - 1ページあたりのアイテム数を取得する
 - **GetPageItems** - 現在のページのアイテムを取得する
 
-### 7.19 Models/AvatarExplorerModels.cs ✅
+### 7.21 Models/AvatarExplorerModels.cs ✅
 - **AvatarExplorerDatabase** ✅ - AEデータベースモデル
 - **AvatarExplorerItem** ✅ - AEアイテムモデル
 - **GetCategoryName** ✅ - カテゴリー名を取得する
 
-### 7.20 Models/KonoAssetModels.cs ✅
+### 7.22 Models/KonoAssetModels.cs ✅
 - **KonoAssetDatabase** ✅ - KA基本データベースモデル
 - **KonoAssetAvatarsDatabase** ✅ - KAアバターデータベースモデル
 - **KonoAssetWearablesDatabase** ✅ - KAウェアラブルデータベースモデル
@@ -322,3 +339,30 @@ UnityEditorAssetBrowser/
 - **KonoAssetWearableItem** ✅ - KAウェアラブルアイテムモデル
 - **KonoAssetWorldObjectItem** ✅ - KAワールドオブジェクトアイテムモデル
 - **KonoAssetDescription** ✅ - KAアイテムの詳細情報モデル 
+
+## 8. 次のステップ
+
+1. **ViewModelsの実装**:
+   - `AssetBrowserViewModel.cs`の実装
+   - `PaginationViewModel.cs`の実装
+
+2. **Viewsの実装**:
+   - `MainView.cs`の実装
+   - `AssetItemView.cs`の実装
+   - `SearchView.cs`の実装
+   - `PaginationView.cs`の実装
+
+3. **Windowsの実装**:
+   - `UnityEditorAssetBrowserWindow.cs`の実装
+
+4. **命名の修正**:
+   - `UniryPackageService.cs`を`UnityPackageService.cs`に修正
+
+5. **テストの実装**:
+   - 各コンポーネントのユニットテスト
+   - 統合テスト
+
+6. **パフォーマンス最適化**:
+   - 画像キャッシュの効率化
+   - データベースアクセスの最適化
+   - UI更新の効率化 
