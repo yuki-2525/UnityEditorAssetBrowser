@@ -199,7 +199,7 @@ UnityEditorAssetBrowser/
 - **ShowItemsContent** - アバター関連アイテムコンテンツの表示
 - **ShowWorldObjectsContent** - ワールドオブジェクトコンテンツの表示
 
-### 7.9 Services/DatabaseService.cs
+### 7.9 Services/DatabaseService.cs ✅
 - **LoadAEDatabase** - AEデータベースの読み込み
 - **LoadKADatabase** - KAデータベースの読み込み
 - **LoadKADatabaseFile** - KAデータベースファイルの読み込み

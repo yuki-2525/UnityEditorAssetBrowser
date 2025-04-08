@@ -1,6 +1,6 @@
 // Copyright (c) 2025 yuki-2525
-// This code is borrowed from AvatarExplorer(https://github.com/yuki-2525/AvatarExplorer)
-// AvatarExplorer is licensed under the MIT License. https://github.com/yuki-2525/AvatarExplorer/blob/main/LICENSE
+// This code is borrowed from AvatarExplorer(https://github.com/puk06/AvatarExplorer)
+// AvatarExplorer is licensed under the MIT License. https://github.com/puk06/AvatarExplorer/blob/main/LICENSE
 // This code is borrowed from AssetLibraryManager (https://github.com/MAIOTAchannel/AssetLibraryManager)
 // Used with permission from MAIOTAchannel
 
@@ -162,7 +162,18 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnEnable()
         {
-            LoadSettings();
+            // DatabaseServiceから設定を読み込む
+            DatabaseService.LoadSettings();
+
+            // パスを取得
+            aeDatabasePath = DatabaseService.GetAEDatabasePath();
+            kaDatabasePath = DatabaseService.GetKADatabasePath();
+
+            // データベースを読み込む
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+                LoadAEDatabase();
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+                LoadKADatabase();
 
             // シーン変更時に自動的に更新を実行
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -213,7 +224,10 @@ namespace UnityEditorAssetBrowser
 
             if (GUI.changed)
             {
-                SaveSettings();
+                // DatabaseServiceにパスを保存
+                DatabaseService.SetAEDatabasePath(aeDatabasePath);
+                DatabaseService.SetKADatabasePath(kaDatabasePath);
+                DatabaseService.SaveSettings();
             }
 
             EditorGUILayout.EndVertical();
@@ -276,6 +290,11 @@ namespace UnityEditorAssetBrowser
 
                 // ページをリセット
                 currentPage = 0;
+
+                // DatabaseServiceにパスを保存
+                DatabaseService.SetAEDatabasePath(aeDatabasePath);
+                DatabaseService.SetKADatabasePath(kaDatabasePath);
+                DatabaseService.SaveSettings();
             }
 
             if (GUILayout.Button("Browse", GUILayout.Width(60)))
@@ -289,6 +308,11 @@ namespace UnityEditorAssetBrowser
                 {
                     path = selectedPath;
                     onPathChanged();
+
+                    // DatabaseServiceにパスを保存
+                    DatabaseService.SetAEDatabasePath(aeDatabasePath);
+                    DatabaseService.SetKADatabasePath(kaDatabasePath);
+                    DatabaseService.SaveSettings();
                 }
             }
 
@@ -999,6 +1023,33 @@ namespace UnityEditorAssetBrowser
                         && aeItem3.Memo.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0
                     )
                         matchesKeyword = true;
+                    else if (
+                        item is KonoAssetAvatarItem kaItem2
+                        && !string.IsNullOrEmpty(kaItem2.description.memo)
+                        && kaItem2.description.memo.IndexOf(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase
+                        ) >= 0
+                    )
+                        matchesKeyword = true;
+                    else if (
+                        item is KonoAssetWearableItem wearableItem
+                        && !string.IsNullOrEmpty(wearableItem.description.memo)
+                        && wearableItem.description.memo.IndexOf(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase
+                        ) >= 0
+                    )
+                        matchesKeyword = true;
+                    else if (
+                        item is KonoAssetWorldObjectItem worldItem
+                        && !string.IsNullOrEmpty(worldItem.description.memo)
+                        && worldItem.description.memo.IndexOf(
+                            keyword,
+                            StringComparison.OrdinalIgnoreCase
+                        ) >= 0
+                    )
+                        matchesKeyword = true;
 
                     if (!matchesKeyword)
                     {
@@ -1130,23 +1181,39 @@ namespace UnityEditorAssetBrowser
                 // メモ検索（スペース区切りでAND検索）
                 if (!string.IsNullOrEmpty(memoSearch))
                 {
-                    if (item is AvatarExplorerItem aeItem && !string.IsNullOrEmpty(aeItem.Memo))
+                    var memoKeywords = memoSearch.Split(
+                        new[] { ' ' },
+                        StringSplitOptions.RemoveEmptyEntries
+                    );
+
+                    string? memo = null;
+
+                    if (item is AvatarExplorerItem aeItem)
                     {
-                        var memoKeywords = memoSearch.Split(
-                            new[] { ' ' },
-                            StringSplitOptions.RemoveEmptyEntries
-                        );
-                        foreach (var keyword in memoKeywords)
-                        {
-                            if (
-                                aeItem.Memo.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0
-                            )
-                                return false;
-                        }
+                        memo = aeItem.Memo;
                     }
-                    else
+                    else if (item is KonoAssetAvatarItem kaItem)
+                    {
+                        memo = kaItem.description.memo;
+                    }
+                    else if (item is KonoAssetWearableItem wearableItem)
+                    {
+                        memo = wearableItem.description.memo;
+                    }
+                    else if (item is KonoAssetWorldObjectItem worldItem)
+                    {
+                        memo = worldItem.description.memo;
+                    }
+
+                    if (string.IsNullOrEmpty(memo))
                     {
                         return false;
+                    }
+
+                    foreach (var keyword in memoKeywords)
+                    {
+                        if (memo.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) < 0)
+                            return false;
                     }
                 }
             }
@@ -1650,112 +1717,7 @@ namespace UnityEditorAssetBrowser
         }
         #endregion
 
-        #region Database Loading Methods
-        /// <summary>
-        /// AEデータベースの読み込み
-        /// </summary>
-        private void LoadAEDatabase()
-        {
-            if (string.IsNullOrEmpty(aeDatabasePath))
-                return;
-
-            aeDatabase = AEDatabaseHelper.LoadAEDatabase(aeDatabasePath);
-        }
-
-        /// <summary>
-        /// KAデータベースの読み込み
-        /// </summary>
-        private void LoadKADatabase()
-        {
-            if (string.IsNullOrEmpty(kaDatabasePath))
-                return;
-
-            var metadataPath = Path.Combine(kaDatabasePath, "metadata");
-
-            if (!Directory.Exists(metadataPath))
-            {
-                // エラーポップアップを表示
-                EditorUtility.DisplayDialog(
-                    "パスエラー",
-                    "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください",
-                    "OK"
-                );
-
-                // パスを空欄に戻す
-                kaDatabasePath = "";
-                SaveSettings();
-                return;
-            }
-
-            LoadKADatabaseFile(metadataPath, "avatars.json", ref kaAvatarsDatabase);
-            LoadKADatabaseFile(metadataPath, "avatarWearables.json", ref kaWearablesDatabase);
-            LoadKADatabaseFile(metadataPath, "worldObjects.json", ref kaWorldObjectsDatabase);
-        }
-
-        /// <summary>
-        /// KAデータベースファイルの読み込み
-        /// </summary>
-        /// <typeparam name="T">データベースの型</typeparam>
-        /// <param name="metadataPath">メタデータパス</param>
-        /// <param name="filename">ファイル名</param>
-        /// <param name="database">データベース参照</param>
-        private void LoadKADatabaseFile<T>(string metadataPath, string filename, ref T? database)
-            where T : class
-        {
-            var filePath = Path.Combine(metadataPath, filename);
-            if (!File.Exists(filePath))
-                return;
-
-            var baseDb = KADatabaseHelper.LoadKADatabase(filePath);
-            if (baseDb == null)
-                return;
-
-            database = JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(baseDb));
-        }
-
-        /// <summary>
-        /// データベースのアイテム数を取得
-        /// </summary>
-        /// <typeparam name="T">データベースの型</typeparam>
-        /// <param name="database">データベース</param>
-        /// <returns>アイテム数</returns>
-        private int GetItemCount<T>(T? database)
-            where T : class
-        {
-            if (database is KonoAssetAvatarsDatabase avatarsDb)
-                return avatarsDb.data.Length;
-            if (database is KonoAssetWearablesDatabase wearablesDb)
-                return wearablesDb.data.Length;
-            if (database is KonoAssetWorldObjectsDatabase worldObjectsDb)
-                return worldObjectsDb.data.Length;
-            return 0;
-        }
-        #endregion
-
         #region Utility Methods
-
-        /// <summary>
-        /// 設定の読み込み
-        /// </summary>
-        private void LoadSettings()
-        {
-            aeDatabasePath = EditorPrefs.GetString(AE_DATABASE_PATH_KEY, "");
-            kaDatabasePath = EditorPrefs.GetString(KA_DATABASE_PATH_KEY, "");
-
-            if (!string.IsNullOrEmpty(aeDatabasePath))
-                LoadAEDatabase();
-            if (!string.IsNullOrEmpty(kaDatabasePath))
-                LoadKADatabase();
-        }
-
-        /// <summary>
-        /// 設定の保存
-        /// </summary>
-        private void SaveSettings()
-        {
-            EditorPrefs.SetString(AE_DATABASE_PATH_KEY, aeDatabasePath);
-            EditorPrefs.SetString(KA_DATABASE_PATH_KEY, kaDatabasePath);
-        }
 
         /// <summary>
         /// データベースを再読み込みする
@@ -1768,12 +1730,12 @@ namespace UnityEditorAssetBrowser
             // データベースを再読み込み
             if (!string.IsNullOrEmpty(aeDatabasePath))
             {
-                LoadAEDatabase();
+                DatabaseService.LoadAEDatabase();
             }
 
             if (!string.IsNullOrEmpty(kaDatabasePath))
             {
-                LoadKADatabase();
+                DatabaseService.LoadKADatabase();
             }
 
             // ページをリセット
@@ -1833,6 +1795,28 @@ namespace UnityEditorAssetBrowser
                 currentSortMethod = method;
                 currentPage = 0;
             }
+        }
+
+        private void LoadAEDatabase()
+        {
+            if (string.IsNullOrEmpty(aeDatabasePath))
+                return;
+
+            DatabaseService.SetAEDatabasePath(aeDatabasePath);
+            DatabaseService.LoadAEDatabase();
+            aeDatabase = DatabaseService.GetAEDatabase();
+        }
+
+        private void LoadKADatabase()
+        {
+            if (string.IsNullOrEmpty(kaDatabasePath))
+                return;
+
+            DatabaseService.SetKADatabasePath(kaDatabasePath);
+            DatabaseService.LoadKADatabase();
+            kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
+            kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
+            kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
         }
         #endregion
     }

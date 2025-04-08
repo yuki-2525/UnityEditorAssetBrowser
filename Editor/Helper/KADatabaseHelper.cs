@@ -13,42 +13,91 @@ using UnityEngine;
 namespace UnityEditorAssetBrowser.Helper
 {
     /// <summary>
-    /// KAデータベース操作を支援するヘルパークラス
+    /// KonoAssetデータベースの読み込みを支援するヘルパークラス
     /// </summary>
-    public static class KADatabaseHelper
+    public class KADatabaseHelper
     {
         /// <summary>
-        /// KAデータベースを読み込む
+        /// データベース読み込み結果
         /// </summary>
-        /// <param name="path">データベースのパス</param>
-        /// <returns>読み込んだデータベース、失敗時はnull</returns>
-        public static KonoAssetDatabase? LoadKADatabase(string path)
+        public class DatabaseLoadResult
+        {
+            public KonoAssetAvatarsDatabase? avatarsDatabase;
+            public KonoAssetWearablesDatabase? wearablesDatabase;
+            public KonoAssetWorldObjectsDatabase? worldObjectsDatabase;
+        }
+
+        /// <summary>
+        /// KonoAssetデータベースを読み込む
+        /// </summary>
+        /// <param name="metadataPath">メタデータパス</param>
+        /// <returns>読み込んだデータベース</returns>
+        public static DatabaseLoadResult? LoadKADatabase(string metadataPath)
+        {
+            var result = new DatabaseLoadResult();
+
+            // アバターデータベースの読み込み
+            var avatarsPath = Path.Combine(metadataPath, "avatars.json");
+            if (File.Exists(avatarsPath))
+            {
+                var baseDb = LoadKADatabaseFile(avatarsPath);
+                if (baseDb != null)
+                {
+                    result.avatarsDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(
+                            JsonConvert.SerializeObject(baseDb)
+                        );
+                }
+            }
+
+            // ウェアラブルデータベースの読み込み
+            var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
+            if (File.Exists(wearablesPath))
+            {
+                var baseDb = LoadKADatabaseFile(wearablesPath);
+                if (baseDb != null)
+                {
+                    result.wearablesDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(
+                            JsonConvert.SerializeObject(baseDb)
+                        );
+                }
+            }
+
+            // ワールドオブジェクトデータベースの読み込み
+            var worldObjectsPath = Path.Combine(metadataPath, "worldObjects.json");
+            if (File.Exists(worldObjectsPath))
+            {
+                var baseDb = LoadKADatabaseFile(worldObjectsPath);
+                if (baseDb != null)
+                {
+                    result.worldObjectsDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(
+                            JsonConvert.SerializeObject(baseDb)
+                        );
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// KonoAssetデータベースファイルを読み込む
+        /// </summary>
+        /// <param name="filePath">ファイルパス</param>
+        /// <returns>読み込んだデータベース</returns>
+        private static object? LoadKADatabaseFile(string filePath)
         {
             try
             {
-                if (!File.Exists(path))
-                {
-                    Debug.LogWarning($"File not found: {path}");
-                    return null;
-                }
-
-                var json = File.ReadAllText(path);
-                var database = JsonConvert.DeserializeObject<KonoAssetDatabase>(
-                    json,
-                    JsonSettings.Settings
-                );
-
-                if (database == null)
-                {
-                    Debug.LogWarning("Failed to deserialize KA database");
-                    return null;
-                }
-
-                return database;
+                var json = File.ReadAllText(filePath);
+                return JsonConvert.DeserializeObject(json);
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Error loading KA database: {ex.Message}");
+                UnityEngine.Debug.LogError(
+                    $"Failed to load database file: {filePath}\n{ex.Message}"
+                );
                 return null;
             }
         }
