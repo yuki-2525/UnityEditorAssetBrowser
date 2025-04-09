@@ -45,6 +45,7 @@ namespace UnityEditorAssetBrowser
 
         #region Fields
         private PaginationInfo _paginationInfo = new PaginationInfo();
+        private PaginationViewModel _paginationViewModel;
 
         /// <summary>AvatarExplorerのデータベース</summary>
         private AvatarExplorerDatabase? aeDatabase;
@@ -133,6 +134,14 @@ namespace UnityEditorAssetBrowser
         private AssetItem assetItem = new AssetItem();
 
         private SearchViewModel searchViewModel = new SearchViewModel();
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        public UnityEditorAssetBrowser()
+        {
+            _paginationViewModel = new PaginationViewModel(_paginationInfo);
+        }
         #endregion
 
         #region Unity Editor Window Methods
@@ -165,6 +174,9 @@ namespace UnityEditorAssetBrowser
 
             // SearchViewModelを初期化
             searchViewModel = new SearchViewModel(aeDatabase);
+
+            // PaginationViewModelを初期化（既存のPaginationInfoを使用）
+            _paginationViewModel = new PaginationViewModel(_paginationInfo);
 
             // シーン変更時に自動的に更新を実行
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -289,7 +301,7 @@ namespace UnityEditorAssetBrowser
                 }
 
                 // ページをリセット
-                _paginationInfo.ResetPage();
+                _paginationViewModel.ResetPage();
 
                 // DatabaseServiceにパスを保存
                 DatabaseService.SetAEDatabasePath(aeDatabasePath);
@@ -324,14 +336,14 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void DrawTabBar()
         {
-            var newTab = GUILayout.Toolbar(_paginationInfo.SelectedTab, tabs);
-            if (newTab != _paginationInfo.SelectedTab)
+            var newTab = GUILayout.Toolbar(_paginationViewModel.SelectedTab, tabs);
+            if (newTab != _paginationViewModel.SelectedTab)
             {
-                _paginationInfo.SelectedTab = newTab;
-                _paginationInfo.ResetPage();
+                _paginationViewModel.SelectedTab = newTab;
+                _paginationViewModel.ResetPage();
 
                 // タブが切り替わったときにSearchViewModelに通知
-                searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
+                searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
 
                 Repaint();
             }
@@ -366,7 +378,7 @@ namespace UnityEditorAssetBrowser
             if (newShowAdvancedSearch != searchViewModel.SearchCriteria.ShowAdvancedSearch)
             {
                 searchViewModel.SearchCriteria.ShowAdvancedSearch = newShowAdvancedSearch;
-                _paginationInfo.ResetPage();
+                _paginationViewModel.ResetPage();
                 Repaint();
             }
 
@@ -514,7 +526,11 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void DrawSearchResultCount()
         {
-            int totalItems = GetCurrentTabItemCount();
+            int totalItems = _paginationViewModel.GetCurrentTabItemCount(
+                GetFilteredAvatars,
+                GetFilteredItems,
+                GetFilteredWorldObjects
+            );
             EditorGUILayout.LabelField($"検索結果: {totalItems}件");
             EditorGUILayout.Space(10);
         }
@@ -548,7 +564,7 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void DrawCurrentTabContent()
         {
-            switch (_paginationInfo.SelectedTab)
+            switch (_paginationViewModel.SelectedTab)
             {
                 case 0:
                     ShowAvatarsContent();
@@ -570,37 +586,20 @@ namespace UnityEditorAssetBrowser
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("前へ", GUILayout.Width(100)))
             {
-                _paginationInfo.MoveToPreviousPage();
+                _paginationViewModel.MoveToPreviousPage();
             }
-            int totalPages = _paginationInfo.GetTotalPages(GetCurrentTabItems());
-            GUILayout.Label($"ページ {_paginationInfo.CurrentPage + 1} / {totalPages}");
+            int totalPages = _paginationViewModel.GetTotalPages(GetCurrentTabItems());
+            GUILayout.Label($"ページ {_paginationViewModel.CurrentPage + 1} / {totalPages}");
             if (GUILayout.Button("次へ", GUILayout.Width(100)))
             {
-                _paginationInfo.MoveToNextPage(totalPages);
+                _paginationViewModel.MoveToNextPage(totalPages);
             }
             GUILayout.EndHorizontal();
         }
         #endregion
 
         #region Helper Methods
-        /// <summary>
-        /// 現在のタブのアイテム数を取得
-        /// </summary>
-        /// <returns>アイテム数</returns>
-        private int GetCurrentTabItemCount()
-        {
-            switch (_paginationInfo.SelectedTab)
-            {
-                case 0:
-                    return GetFilteredAvatars().Count;
-                case 1:
-                    return GetFilteredItems().Count;
-                case 2:
-                    return GetFilteredWorldObjects().Count;
-                default:
-                    return 0;
-            }
-        }
+
 
         /// <summary>
         /// カテゴリーがワールド関連かどうかを判定
@@ -645,7 +644,7 @@ namespace UnityEditorAssetBrowser
         {
             var filteredItems = GetFilteredAvatars();
             var sortedItems = SortItems(filteredItems);
-            var pageItems = _paginationInfo.GetCurrentPageItems(sortedItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
             foreach (var item in pageItems)
             {
@@ -667,7 +666,7 @@ namespace UnityEditorAssetBrowser
         {
             var filteredItems = GetFilteredItems();
             var sortedItems = SortItems(filteredItems);
-            var pageItems = _paginationInfo.GetCurrentPageItems(sortedItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
             foreach (var item in pageItems)
             {
@@ -689,7 +688,7 @@ namespace UnityEditorAssetBrowser
         {
             var filteredItems = GetFilteredWorldObjects();
             var sortedItems = SortItems(filteredItems);
-            var pageItems = _paginationInfo.GetCurrentPageItems(sortedItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
             foreach (var item in pageItems)
             {
@@ -711,7 +710,7 @@ namespace UnityEditorAssetBrowser
         private int GetTotalPages()
         {
             int totalItems = 0;
-            switch (_paginationInfo.SelectedTab)
+            switch (_paginationViewModel.SelectedTab)
             {
                 case 0:
                     totalItems = GetFilteredAvatars().Count;
@@ -1362,7 +1361,7 @@ namespace UnityEditorAssetBrowser
             }
 
             // ページをリセット
-            _paginationInfo.ResetPage();
+            _paginationViewModel.ResetPage();
         }
 
         /// <summary>
@@ -1395,17 +1394,11 @@ namespace UnityEditorAssetBrowser
         /// <returns>現在のタブのアイテムリスト</returns>
         private List<object> GetCurrentTabItems()
         {
-            switch (_paginationInfo.SelectedTab)
-            {
-                case 0:
-                    return GetFilteredAvatars();
-                case 1:
-                    return GetFilteredItems();
-                case 2:
-                    return GetFilteredWorldObjects();
-                default:
-                    return new List<object>();
-            }
+            return _paginationViewModel.GetCurrentTabItems(
+                GetFilteredAvatars,
+                GetFilteredItems,
+                GetFilteredWorldObjects
+            );
         }
 
         /// <summary>
@@ -1416,7 +1409,7 @@ namespace UnityEditorAssetBrowser
             if (currentSortMethod != method)
             {
                 currentSortMethod = method;
-                _paginationInfo.ResetPage();
+                _paginationViewModel.ResetPage();
             }
         }
 
