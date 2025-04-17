@@ -46,6 +46,7 @@ namespace UnityEditorAssetBrowser
         #region Fields
         private PaginationInfo _paginationInfo = new PaginationInfo();
         private PaginationViewModel _paginationViewModel;
+        private AssetBrowserViewModel _assetBrowserViewModel;
 
         /// <summary>AvatarExplorerのデータベース</summary>
         private AvatarExplorerDatabase? aeDatabase;
@@ -70,9 +71,6 @@ namespace UnityEditorAssetBrowser
 
         /// <summary>詳細検索の表示状態</summary>
         private bool showAdvancedSearch => searchViewModel.SearchCriteria.ShowAdvancedSearch;
-
-        /// <summary>選択中のタブインデックス</summary>
-        private int selectedTab = 0;
 
         /// <summary>タブのラベル</summary>
         private string[] tabs = { "アバター", "アバター関連", "ワールド" };
@@ -133,7 +131,7 @@ namespace UnityEditorAssetBrowser
 
         private AssetItem assetItem = new AssetItem();
 
-        private SearchViewModel searchViewModel = new SearchViewModel();
+        private SearchViewModel searchViewModel = new SearchViewModel(null, null, null, null);
 
         /// <summary>
         /// コンストラクタ
@@ -141,6 +139,14 @@ namespace UnityEditorAssetBrowser
         public UnityEditorAssetBrowser()
         {
             _paginationViewModel = new PaginationViewModel(_paginationInfo);
+            _assetBrowserViewModel = new AssetBrowserViewModel(
+                aeDatabase,
+                kaAvatarsDatabase,
+                kaWearablesDatabase,
+                kaWorldObjectsDatabase,
+                _paginationInfo,
+                searchViewModel
+            );
         }
         #endregion
 
@@ -173,10 +179,26 @@ namespace UnityEditorAssetBrowser
                 LoadAndDisplayKADatabase();
 
             // SearchViewModelを初期化
-            searchViewModel = new SearchViewModel(aeDatabase);
+            searchViewModel = new SearchViewModel(
+                aeDatabase,
+                kaAvatarsDatabase,
+                kaWearablesDatabase,
+                kaWorldObjectsDatabase
+            );
 
             // PaginationViewModelを初期化（既存のPaginationInfoを使用）
             _paginationViewModel = new PaginationViewModel(_paginationInfo);
+
+            // AssetBrowserViewModelを初期化
+            _assetBrowserViewModel = new AssetBrowserViewModel(
+                aeDatabase,
+                kaAvatarsDatabase,
+                kaWearablesDatabase,
+                kaWorldObjectsDatabase,
+                _paginationInfo,
+                searchViewModel
+            );
+            _assetBrowserViewModel.Initialize(); // 初期化処理を呼び出し
 
             // シーン変更時に自動的に更新を実行
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -286,9 +308,8 @@ namespace UnityEditorAssetBrowser
             if (!string.IsNullOrEmpty(path) && GUILayout.Button("削除", GUILayout.Width(60)))
             {
                 path = "";
-                onPathChanged();
 
-                // データベースオブジェクトも削除
+                // データベースオブジェクトを削除
                 if (label == "AE Database Path:")
                 {
                     aeDatabase = null;
@@ -300,13 +321,42 @@ namespace UnityEditorAssetBrowser
                     kaWorldObjectsDatabase = null;
                 }
 
+                // SearchViewModelを更新
+                searchViewModel = new SearchViewModel(
+                    aeDatabase,
+                    kaAvatarsDatabase,
+                    kaWearablesDatabase,
+                    kaWorldObjectsDatabase
+                );
+                searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+
+                // AssetBrowserViewModelを再初期化
+                _assetBrowserViewModel = new AssetBrowserViewModel(
+                    aeDatabase,
+                    kaAvatarsDatabase,
+                    kaWearablesDatabase,
+                    kaWorldObjectsDatabase,
+                    _paginationInfo,
+                    searchViewModel
+                );
+                _assetBrowserViewModel.Initialize();
+
                 // ページをリセット
                 _paginationViewModel.ResetPage();
+
+                // 画像キャッシュをクリア
+                ImageServices.Instance.ClearCache();
 
                 // DatabaseServiceにパスを保存
                 DatabaseService.SetAEDatabasePath(aeDatabasePath);
                 DatabaseService.SetKADatabasePath(kaDatabasePath);
                 DatabaseService.SaveSettings();
+
+                // コールバックを呼び出し
+                onPathChanged?.Invoke();
+
+                // 再描画を要求
+                Repaint();
             }
 
             if (GUILayout.Button("Browse", GUILayout.Width(60)))
@@ -319,12 +369,50 @@ namespace UnityEditorAssetBrowser
                 if (!string.IsNullOrEmpty(selectedPath))
                 {
                     path = selectedPath;
-                    onPathChanged();
+
+                    // データベースを読み込む
+                    if (label == "AE Database Path:")
+                    {
+                        LoadAndDisplayAEDatabase();
+                    }
+                    else if (label == "KA Database Path:")
+                    {
+                        LoadAndDisplayKADatabase();
+                    }
+
+                    // SearchViewModelを更新
+                    searchViewModel = new SearchViewModel(
+                        aeDatabase,
+                        kaAvatarsDatabase,
+                        kaWearablesDatabase,
+                        kaWorldObjectsDatabase
+                    );
+                    searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+
+                    // AssetBrowserViewModelを再初期化
+                    _assetBrowserViewModel = new AssetBrowserViewModel(
+                        aeDatabase,
+                        kaAvatarsDatabase,
+                        kaWearablesDatabase,
+                        kaWorldObjectsDatabase,
+                        _paginationInfo,
+                        searchViewModel
+                    );
+                    _assetBrowserViewModel.Initialize();
+
+                    // ページをリセット
+                    _paginationViewModel.ResetPage();
 
                     // DatabaseServiceにパスを保存
                     DatabaseService.SetAEDatabasePath(aeDatabasePath);
                     DatabaseService.SetKADatabasePath(kaDatabasePath);
                     DatabaseService.SaveSettings();
+
+                    // コールバックを呼び出し
+                    onPathChanged?.Invoke();
+
+                    // 再描画を要求
+                    Repaint();
                 }
             }
 
@@ -366,6 +454,15 @@ namespace UnityEditorAssetBrowser
             if (newSearchQuery != searchViewModel.SearchCriteria.SearchQuery)
             {
                 searchViewModel.SearchCriteria.SearchQuery = newSearchQuery;
+                _paginationViewModel.ResetPage(); // 検索条件が変更されたらページをリセット
+                Repaint();
+            }
+
+            // クリアボタン
+            if (GUILayout.Button("クリア", GUILayout.Width(60)))
+            {
+                searchViewModel.ClearSearchCriteria();
+                _paginationViewModel.ResetPage();
                 Repaint();
             }
 
@@ -453,7 +550,7 @@ namespace UnityEditorAssetBrowser
                 EditorGUILayout.EndHorizontal();
 
                 // カテゴリ検索（アバタータブ以外で表示）
-                if (selectedTab != 0)
+                if (_paginationViewModel.SelectedTab != 0)
                 {
                     EditorGUILayout.BeginHorizontal();
                     EditorGUILayout.LabelField("カテゴリ:", GUILayout.Width(100));
@@ -469,7 +566,7 @@ namespace UnityEditorAssetBrowser
                 }
 
                 // 対応アバター検索（アイテムタブのみで表示）
-                if (selectedTab == 1)
+                if (_paginationViewModel.SelectedTab == 1)
                 {
                     EditorGUILayout.BeginHorizontal();
                     EditorGUILayout.LabelField("対応アバター:", GUILayout.Width(100));
@@ -527,9 +624,9 @@ namespace UnityEditorAssetBrowser
         private void DrawSearchResultCount()
         {
             int totalItems = _paginationViewModel.GetCurrentTabItemCount(
-                GetFilteredAvatars,
-                GetFilteredItems,
-                GetFilteredWorldObjects
+                () => _assetBrowserViewModel.GetFilteredAvatars(),
+                () => _assetBrowserViewModel.GetFilteredItems(),
+                () => _assetBrowserViewModel.GetFilteredWorldObjects()
             );
             EditorGUILayout.LabelField($"検索結果: {totalItems}件");
             EditorGUILayout.Space(10);
@@ -588,7 +685,10 @@ namespace UnityEditorAssetBrowser
             {
                 _paginationViewModel.MoveToPreviousPage();
             }
-            int totalPages = _paginationViewModel.GetTotalPages(GetCurrentTabItems());
+            var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
+                _paginationViewModel.SelectedTab
+            );
+            int totalPages = _paginationViewModel.GetTotalPages(currentItems);
             GUILayout.Label($"ページ {_paginationViewModel.CurrentPage + 1} / {totalPages}");
             if (GUILayout.Button("次へ", GUILayout.Width(100)))
             {
@@ -599,8 +699,6 @@ namespace UnityEditorAssetBrowser
         #endregion
 
         #region Helper Methods
-
-
         /// <summary>
         /// カテゴリーがワールド関連かどうかを判定
         /// </summary>
@@ -709,138 +807,132 @@ namespace UnityEditorAssetBrowser
         /// <returns>総ページ数</returns>
         private int GetTotalPages()
         {
-            int totalItems = 0;
-            switch (_paginationViewModel.SelectedTab)
-            {
-                case 0:
-                    totalItems = GetFilteredAvatars().Count;
-                    break;
-                case 1:
-                    totalItems = GetFilteredItems().Count;
-                    break;
-                case 2:
-                    totalItems = GetFilteredWorldObjects().Count;
-                    break;
-            }
-            return Mathf.Max(1, Mathf.CeilToInt((float)totalItems / PaginationInfo.ITEMS_PER_PAGE));
+            var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
+                _paginationViewModel.SelectedTab
+            );
+            return _assetBrowserViewModel.GetTotalPages(currentItems);
         }
 
         /// <summary>
         /// フィルターされたアバターリストを取得
         /// </summary>
         /// <returns>フィルターされたアバターリスト</returns>
-        private List<object> GetFilteredAvatars()
-        {
-            var items = new List<object>();
-
-            // AEのアバター（type=0）を追加
-            if (aeDatabase?.Items != null)
-            {
-                items.AddRange(aeDatabase.Items.Where(item => item.Type == "0"));
-            }
-
-            // KAのアバターを追加
-            if (kaAvatarsDatabase?.data != null)
-            {
-                items.AddRange(kaAvatarsDatabase.data);
-            }
-
-            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
-        }
+        private List<object> GetFilteredAvatars() => _assetBrowserViewModel.GetFilteredAvatars();
 
         /// <summary>
         /// フィルターされたアイテムリストを取得
         /// </summary>
         /// <returns>フィルターされたアイテムリスト</returns>
-        private List<object> GetFilteredItems()
-        {
-            var items = new List<object>();
-            if (aeDatabase != null)
-            {
-                // Type!=0 かつ CustomCategoryに"ワールド"または"world"が含まれていないアイテムを追加
-                items.AddRange(
-                    aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && !item.CustomCategory.Contains(
-                            "ワールド",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        && !item.CustomCategory.Contains(
-                            "world",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
-                );
-            }
-            if (kaWearablesDatabase != null)
-            {
-                items.AddRange(kaWearablesDatabase.data);
-            }
-
-            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
-        }
+        private List<object> GetFilteredItems() => _assetBrowserViewModel.GetFilteredItems();
 
         /// <summary>
         /// フィルターされたワールドオブジェクトリストを取得
         /// </summary>
         /// <returns>フィルターされたワールドオブジェクトリスト</returns>
-        private List<object> GetFilteredWorldObjects()
-        {
-            var items = new List<object>();
-
-            // AEのワールドアイテムを追加
-            if (aeDatabase?.Items != null)
-            {
-                items.AddRange(
-                    aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && (
-                            item.CustomCategory.Contains(
-                                "ワールド",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                            || item.CustomCategory.Contains(
-                                "world",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                    )
-                );
-            }
-
-            // KAのワールドオブジェクトを追加
-            if (kaWorldObjectsDatabase?.data != null)
-            {
-                items.AddRange(kaWorldObjectsDatabase.data);
-            }
-
-            return SortItems(items.Where(searchViewModel.IsItemMatchSearch).ToList());
-        }
+        private List<object> GetFilteredWorldObjects() =>
+            _assetBrowserViewModel.GetFilteredWorldObjects();
 
         /// <summary>
         /// アイテムをソートする
         /// </summary>
         /// <param name="items">ソートするアイテムリスト</param>
         /// <returns>ソートされたアイテムリスト</returns>
-        private List<object> SortItems(List<object> items)
+        public List<object> SortItems(List<object> items) =>
+            _assetBrowserViewModel.SortItems(items);
+
+        /// <summary>
+        /// 現在のタブのアイテムを取得
+        /// </summary>
+        /// <returns>現在のタブのアイテムリスト</returns>
+        private List<object> GetCurrentTabItems() =>
+            _assetBrowserViewModel.GetCurrentTabItems(_paginationViewModel.SelectedTab);
+
+        /// <summary>
+        /// ソート方法を設定
+        /// </summary>
+        private void SetSortMethod(SortMethod method)
         {
-            switch (currentSortMethod)
+            if (currentSortMethod != method)
             {
-                case SortMethod.CreatedDateDesc:
-                    return items.OrderByDescending(item => GetCreatedDate(item)).ToList();
-                case SortMethod.CreatedDateAsc:
-                    return items.OrderBy(item => GetCreatedDate(item)).ToList();
-                case SortMethod.TitleAsc:
-                    return items.OrderBy(item => GetTitle(item)).ToList();
-                case SortMethod.TitleDesc:
-                    return items.OrderByDescending(item => GetTitle(item)).ToList();
-                case SortMethod.AuthorAsc:
-                    return items.OrderBy(item => GetAuthor(item)).ToList();
-                case SortMethod.AuthorDesc:
-                    return items.OrderByDescending(item => GetAuthor(item)).ToList();
-                default:
-                    return items;
+                currentSortMethod = method;
+                _assetBrowserViewModel.SetSortMethod((AssetBrowserViewModel.SortMethod)method);
+                _paginationViewModel.ResetPage();
             }
+        }
+
+        /// <summary>
+        /// データベースを再読み込みする
+        /// </summary>
+        private void RefreshDatabases()
+        {
+            // 画像キャッシュをクリア
+            ImageServices.Instance.ClearCache();
+
+            // データベースを再読み込み
+            if (!string.IsNullOrEmpty(aeDatabasePath))
+            {
+                LoadAndDisplayAEDatabase();
+            }
+
+            if (!string.IsNullOrEmpty(kaDatabasePath))
+            {
+                LoadAndDisplayKADatabase();
+            }
+
+            // AssetBrowserViewModelを更新
+            _assetBrowserViewModel = new AssetBrowserViewModel(
+                aeDatabase,
+                kaAvatarsDatabase,
+                kaWearablesDatabase,
+                kaWorldObjectsDatabase,
+                _paginationInfo,
+                searchViewModel
+            );
+
+            // ページをリセット
+            _paginationViewModel.ResetPage();
+        }
+
+        /// <summary>
+        /// 画像キャッシュを再取得する
+        /// </summary>
+        private void RefreshImageCache()
+        {
+            _assetBrowserViewModel.RefreshImageCache(aeDatabasePath, kaDatabasePath);
+        }
+
+        /// <summary>
+        /// AEデータベースの読み込みと表示
+        /// </summary>
+        private void LoadAndDisplayAEDatabase()
+        {
+            if (string.IsNullOrEmpty(aeDatabasePath))
+                return;
+
+            DatabaseService.SetAEDatabasePath(aeDatabasePath);
+            DatabaseService.LoadAndUpdateAEDatabase();
+            aeDatabase = DatabaseService.GetAEDatabase();
+
+            // パスが空欄になった場合（エラー時）に更新
+            aeDatabasePath = DatabaseService.GetAEDatabasePath();
+        }
+
+        /// <summary>
+        /// KAデータベースの読み込みと表示
+        /// </summary>
+        private void LoadAndDisplayKADatabase()
+        {
+            if (string.IsNullOrEmpty(kaDatabasePath))
+                return;
+
+            DatabaseService.SetKADatabasePath(kaDatabasePath);
+            DatabaseService.LoadAndUpdateKADatabase();
+            kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
+            kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
+            kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
+
+            // パスが空欄になった場合（エラー時）に更新
+            kaDatabasePath = DatabaseService.GetKADatabasePath();
         }
 
         #region Item Display Methods
@@ -1336,165 +1428,6 @@ namespace UnityEditorAssetBrowser
                 AssetDatabase.ImportPackage(package, true);
             }
             GUILayout.EndHorizontal();
-        }
-        #endregion
-
-        #region Utility Methods
-
-        /// <summary>
-        /// データベースを再読み込みする
-        /// </summary>
-        private void RefreshDatabases()
-        {
-            // 画像キャッシュをクリア
-            ImageServices.Instance.ClearCache();
-
-            // データベースを再読み込み
-            if (!string.IsNullOrEmpty(aeDatabasePath))
-            {
-                LoadAndDisplayAEDatabase();
-            }
-
-            if (!string.IsNullOrEmpty(kaDatabasePath))
-            {
-                LoadAndDisplayKADatabase();
-            }
-
-            // ページをリセット
-            _paginationViewModel.ResetPage();
-        }
-
-        /// <summary>
-        /// 画像キャッシュを再取得する
-        /// </summary>
-        private void RefreshImageCache()
-        {
-            // 画像キャッシュをクリア
-            ImageServices.Instance.ClearCache();
-
-            // 現在表示中のアイテムの画像を再読み込み
-            var currentItems = GetCurrentTabItems();
-            foreach (var item in currentItems)
-            {
-                string imagePath = ImageServices.GetItemImagePath(item);
-                if (!string.IsNullOrEmpty(imagePath))
-                {
-                    string fullImagePath = GetFullImagePath(imagePath);
-                    if (File.Exists(fullImagePath))
-                    {
-                        ImageServices.Instance.LoadTexture(fullImagePath);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 現在のタブのアイテムを取得
-        /// </summary>
-        /// <returns>現在のタブのアイテムリスト</returns>
-        private List<object> GetCurrentTabItems()
-        {
-            return _paginationViewModel.GetCurrentTabItems(
-                GetFilteredAvatars,
-                GetFilteredItems,
-                GetFilteredWorldObjects
-            );
-        }
-
-        /// <summary>
-        /// ソート方法を設定
-        /// </summary>
-        private void SetSortMethod(SortMethod method)
-        {
-            if (currentSortMethod != method)
-            {
-                currentSortMethod = method;
-                _paginationViewModel.ResetPage();
-            }
-        }
-
-        /// <summary>
-        /// AEデータベースの読み込みと表示
-        /// </summary>
-        private void LoadAndDisplayAEDatabase()
-        {
-            if (string.IsNullOrEmpty(aeDatabasePath))
-                return;
-
-            DatabaseService.SetAEDatabasePath(aeDatabasePath);
-            DatabaseService.LoadAndUpdateAEDatabase();
-            aeDatabase = DatabaseService.GetAEDatabase();
-
-            // パスが空欄になった場合（エラー時）に更新
-            aeDatabasePath = DatabaseService.GetAEDatabasePath();
-        }
-
-        /// <summary>
-        /// KAデータベースの読み込みと表示
-        /// </summary>
-        private void LoadAndDisplayKADatabase()
-        {
-            if (string.IsNullOrEmpty(kaDatabasePath))
-                return;
-
-            DatabaseService.SetKADatabasePath(kaDatabasePath);
-            DatabaseService.LoadAndUpdateKADatabase();
-            kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
-            kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
-            kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
-
-            // パスが空欄になった場合（エラー時）に更新
-            kaDatabasePath = DatabaseService.GetKADatabasePath();
-        }
-
-        /// <summary>
-        /// アイテムのタイトルを取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>タイトル</returns>
-        private string GetTitle(object item)
-        {
-            return assetItem.GetTitle(item);
-        }
-
-        /// <summary>
-        /// アイテムの作者名を取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作者名</returns>
-        private string GetAuthor(object item)
-        {
-            return assetItem.GetAuthor(item);
-        }
-
-        /// <summary>
-        /// アイテムのカテゴリー名を取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>カテゴリー名</returns>
-        private string GetAECategoryName(object item)
-        {
-            return assetItem.GetAECategoryName(item);
-        }
-
-        /// <summary>
-        /// アイテムの作成日を取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作成日（UnixTimeMilliseconds）</returns>
-        private long GetCreatedDate(object item)
-        {
-            return assetItem.GetCreatedDate(item);
-        }
-
-        /// <summary>
-        /// アイテムのメモを取得
-        /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>メモ</returns>
-        private string GetMemo(object item)
-        {
-            return assetItem.GetMemo(item);
         }
         #endregion
     }

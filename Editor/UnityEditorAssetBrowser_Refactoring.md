@@ -26,7 +26,7 @@ UnityEditorAssetBrowser/
 │   ├── Windows/
 │   │   └── UnityEditorAssetBrowserWindow.cs ❌
 │   ├── ViewModels/
-│   │   ├── AssetBrowserViewModel.cs ❌
+│   │   ├── AssetBrowserViewModel.cs ⏳
 │   │   ├── SearchViewModel.cs ✅
 │   │   ├── SearchCriteriaManager.cs ✅
 │   │   └── PaginationViewModel.cs ✅
@@ -62,20 +62,43 @@ UnityEditorAssetBrowser/
   - シーン変更イベントの処理
 
 ### 3.2 ViewModels
-- **AssetBrowserViewModel** ❌
+- **AssetBrowserViewModel** ⏳
   - メインのビジネスロジック
   - データの管理と操作
   - 検索とフィルタリング
   - ページネーション
+  - 実装済み機能:
+    - GetCurrentTabItemCount ✅
+    - GetTotalPages ✅
+    - GetFilteredAvatars ✅
+    - GetFilteredItems ✅
+    - GetFilteredWorldObjects ✅
+    - SortItems ✅
+    - GetCurrentTabItems ✅
+    - SetSortMethod ✅
+    - RefreshImageCache ✅
+  - 未実装機能:
+    - その他のビジネスロジック ❌
 
 - **SearchViewModel** ✅
   - 検索条件の管理
   - 検索ロジック
   - フィルタリング
+  - タブごとの検索条件の保存と復元
+  - 実装済み機能:
+    - IsItemMatchSearch ✅
+    - SetCurrentTab ✅
+    - SearchCriteria管理 ✅
+    - タブごとの検索条件の保存と復元 ✅
+    - 検索条件のクリア ✅
 
 - **SearchCriteriaManager** ✅
   - タブごとの検索条件の管理
   - 検索条件の保存と読み込み
+  - 実装済み機能:
+    - SetCurrentTab ✅
+    - SaveCurrentTabCriteria ✅
+    - LoadTabCriteria ✅
 
 - **PaginationViewModel** ✅
   - ページネーション情報の管理
@@ -189,7 +212,8 @@ UnityEditorAssetBrowser/
 2. 基本クラスの実装 ✅
 3. 既存コードの段階的な移行 ⏳
    - PaginationViewModelの実装と統合 ✅
-   - 残りのViewModelの実装 ❌
+   - SearchViewModelの実装と統合 ✅
+   - AssetBrowserViewModelの実装 ⏳
    - Viewの実装 ❌
    - Windowの実装 ❌
 4. テストの実装 ❌
@@ -225,7 +249,10 @@ UnityEditorAssetBrowser/
 
 ### 7.3 ViewModels/SearchViewModel.cs ✅
 - **IsItemMatchSearch** - アイテムが検索条件に一致するかチェック
-- **SetCurrentTab** - 現在のタブを設定
+- **SetCurrentTab** - 現在のタブを設定し、検索条件を保存/復元
+- **ClearSearchCriteria** - 現在のタブの検索条件をクリア
+- **SearchCriteria** - 現在のタブの検索条件を管理
+- **_tabSearchCriteria** - タブごとの検索条件を保存
 
 ### 7.4 ViewModels/SearchCriteriaManager.cs ✅
 - **SetCurrentTab** - 現在のタブを設定
@@ -270,6 +297,10 @@ UnityEditorAssetBrowser/
 
 ### 7.8 Views/SearchView.cs ❌
 - **DrawSearchField** - 検索フィールドの描画
+  - 基本検索フィールド
+  - クリアボタン
+  - 詳細検索トグル
+  - 詳細検索フィールド
 - **DrawSearchResultCount** - 検索結果件数の描画
 - **DrawDatabasePathFields** - データベースパス入力フィールドの描画
 - **DrawDatabasePathField** - 個別のデータベースパス入力フィールドの描画
@@ -361,11 +392,12 @@ UnityEditorAssetBrowser/
 
 1. **ViewModelsの実装**:
    - `AssetBrowserViewModel.cs`の実装 ❌
+   - `SearchViewModel.cs`の機能拡張（タブごとの検索条件の永続化）❌
 
 2. **Viewsの実装**:
    - `MainView.cs`の実装 ❌
    - `AssetItemView.cs`の実装 ❌
-   - `SearchView.cs`の実装 ❌
+   - `SearchView.cs`の実装（クリアボタンの追加）❌
    - `PaginationView.cs`の実装 ❌
 
 3. **Windowsの実装**:
@@ -374,8 +406,10 @@ UnityEditorAssetBrowser/
 4. **テストの実装**:
    - 各コンポーネントのユニットテスト ❌
    - 統合テスト ❌
+   - タブごとの検索条件の保存/復元テスト ❌
 
 5. **パフォーマンス最適化**:
    - 画像キャッシュの効率化 ❌
    - データベースアクセスの最適化 ❌
-   - UI更新の効率化 ❌ 
+   - UI更新の効率化 ❌
+   - 検索条件の保存/復元の効率化 ❌ 

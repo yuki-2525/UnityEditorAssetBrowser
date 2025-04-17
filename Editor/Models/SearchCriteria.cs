@@ -270,6 +270,21 @@ namespace UnityEditorAssetBrowser.Models
             ShowWorldObjects = true;
             CurrentPage = 1;
         }
+
+        public SearchCriteria Clone()
+        {
+            return new SearchCriteria
+            {
+                SearchQuery = this.SearchQuery,
+                ShowAdvancedSearch = this.ShowAdvancedSearch,
+                TitleSearch = this.TitleSearch,
+                AuthorSearch = this.AuthorSearch,
+                CategorySearch = this.CategorySearch,
+                SupportedAvatarsSearch = this.SupportedAvatarsSearch,
+                TagsSearch = this.TagsSearch,
+                MemoSearch = this.MemoSearch,
+            };
+        }
     }
 
     /// <summary>
