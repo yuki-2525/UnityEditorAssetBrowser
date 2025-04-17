@@ -12,6 +12,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
+using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Services
 {
@@ -75,24 +76,20 @@ namespace UnityEditorAssetBrowser.Services
             if (string.IsNullOrEmpty(aeDatabasePath))
                 return;
 
-            var databasePath = Path.Combine(aeDatabasePath, "ItemsData.json");
-
-            if (!File.Exists(databasePath))
+            aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
+            if (aeDatabase == null)
             {
                 // エラーポップアップを表示
                 EditorUtility.DisplayDialog(
                     "パスエラー",
-                    "入力したパスが誤っています\n\nAvatarExplorerの設定にある\n\"データベースの保存先\"と\n同一のディレクトリを指定してください",
+                    "入力したパスが誤っています\n\nAvatarExplorer-v1.0.x/Datas\nを指定してください",
                     "OK"
                 );
 
                 // パスを空欄に戻す
                 aeDatabasePath = "";
                 SaveSettings();
-                return;
             }
-
-            aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
         }
 
         /// <summary>
@@ -104,7 +101,6 @@ namespace UnityEditorAssetBrowser.Services
                 return;
 
             var metadataPath = Path.Combine(kaDatabasePath, "metadata");
-
             if (!Directory.Exists(metadataPath))
             {
                 // エラーポップアップを表示
@@ -121,12 +117,9 @@ namespace UnityEditorAssetBrowser.Services
             }
 
             var result = KADatabaseHelper.LoadKADatabaseFiles(metadataPath);
-            if (result != null)
-            {
-                kaAvatarsDatabase = result.avatarsDatabase;
-                kaWearablesDatabase = result.wearablesDatabase;
-                kaWorldObjectsDatabase = result.worldObjectsDatabase;
-            }
+            kaAvatarsDatabase = result.avatarsDatabase;
+            kaWearablesDatabase = result.wearablesDatabase;
+            kaWorldObjectsDatabase = result.worldObjectsDatabase;
         }
 
         /// <summary>

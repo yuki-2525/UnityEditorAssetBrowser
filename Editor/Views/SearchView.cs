@@ -5,6 +5,7 @@
 using System;
 using UnityEditor;
 using UnityEditorAssetBrowser.Models;
+using UnityEditorAssetBrowser.Services;
 using UnityEditorAssetBrowser.ViewModels;
 using UnityEngine;
 
@@ -239,73 +240,118 @@ namespace UnityEditorAssetBrowser.Views
             EditorGUILayout.Space(10);
         }
 
+        /// <summary>
+        /// データベースパス入力フィールドの描画
+        /// </summary>
         public void DrawDatabasePathFields(
             ref string aeDatabasePath,
             ref string kaDatabasePath,
-            Action onAePathChanged,
-            Action onKaPathChanged
+            Action loadAEDatabase,
+            Action loadKADatabase
         )
         {
-            DrawDatabasePathField("AE Database Path:", ref aeDatabasePath, onAePathChanged);
-            DrawDatabasePathField("KA Database Path:", ref kaDatabasePath, onKaPathChanged);
+            DrawDatabasePathField("AE Database Path:", ref aeDatabasePath, loadAEDatabase);
+            DrawDatabasePathField("KA Database Path:", ref kaDatabasePath, loadKADatabase);
 
             // リフレッシュボタンを追加（一つにまとめる）
             EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("更新", GUILayout.Width(100)))
+            if (GUILayout.Button("更新", GUILayout.Width(150)))
             {
-                onAePathChanged();
-                onKaPathChanged();
-                GUI.changed = true;
+                _assetBrowserViewModel.RefreshDatabases(aeDatabasePath, kaDatabasePath);
+                _assetBrowserViewModel.RefreshImageCache(aeDatabasePath, kaDatabasePath);
             }
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space(10);
         }
 
+        /// <summary>
+        /// データベースパス入力フィールドの描画
+        /// </summary>
+        /// <param name="label">ラベル</param>
+        /// <param name="path">パス</param>
+        /// <param name="onPathChanged">パス変更時のコールバック</param>
         private void DrawDatabasePathField(string label, ref string path, Action onPathChanged)
         {
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(label, GUILayout.Width(100));
-            EditorGUILayout.TextField(path, EditorStyles.textField);
+            EditorGUILayout.LabelField(label, GUILayout.Width(120));
 
-            // パスが入力されている時のみ削除ボタンを表示
-            if (!string.IsNullOrEmpty(path))
+            // パスを編集不可のテキストフィールドとして表示
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUILayout.TextField(path);
+            EditorGUI.EndDisabledGroup();
+
+            // 削除ボタンを追加（Browseボタンの左に配置）
+            if (!string.IsNullOrEmpty(path) && GUILayout.Button("削除", GUILayout.Width(60)))
             {
-                if (GUILayout.Button("×", GUILayout.Width(20)))
+                path = "";
+                onPathChanged();
+                _paginationViewModel.ResetPage();
+
+                // DatabaseServiceのパスも更新
+                if (label == "AE Database Path:")
                 {
-                    path = string.Empty;
-                    onPathChanged?.Invoke();
-                    // パスが削除されたらデータベースをクリア
-                    if (label.Contains("AE"))
+                    DatabaseService.SetAEDatabasePath(path);
+                }
+                else if (label == "KA Database Path:")
+                {
+                    DatabaseService.SetKADatabasePath(path);
+                }
+                DatabaseService.SaveSettings();
+            }
+
+            if (GUILayout.Button("Browse", GUILayout.Width(60)))
+            {
+                var selectedPath = EditorUtility.OpenFolderPanel(
+                    $"Select {label} Directory",
+                    "",
+                    ""
+                );
+                if (!string.IsNullOrEmpty(selectedPath))
+                {
+                    // パスを一時的に設定して検証
+                    string tempPath = path;
+                    path = selectedPath;
+
+                    // DatabaseServiceのパスも更新
+                    if (label == "AE Database Path:")
                     {
-                        _assetBrowserViewModel.ClearAEDatabase();
+                        DatabaseService.SetAEDatabasePath(path);
+                        DatabaseService.LoadAndUpdateAEDatabase();
+                        string currentPath = DatabaseService.GetAEDatabasePath();
+                        if (string.IsNullOrEmpty(currentPath))
+                        {
+                            path = "";
+                        }
+                        else
+                        {
+                            onPathChanged();
+                        }
                     }
-                    else if (label.Contains("KA"))
+                    else if (label == "KA Database Path:")
                     {
-                        _assetBrowserViewModel.ClearKADatabase();
+                        DatabaseService.SetKADatabasePath(path);
+                        DatabaseService.LoadAndUpdateKADatabase();
+                        string currentPath = DatabaseService.GetKADatabasePath();
+                        if (string.IsNullOrEmpty(currentPath))
+                        {
+                            path = "";
+                        }
+                        else
+                        {
+                            onPathChanged();
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(path))
+                    {
+                        DatabaseService.SaveSettings();
+                        _paginationViewModel.ResetPage();
                     }
                 }
             }
 
-            if (GUILayout.Button("参照", GUILayout.Width(60)))
-            {
-                string newPath = EditorUtility.OpenFolderPanel(label, "", "");
-                if (!string.IsNullOrEmpty(newPath))
-                {
-                    path = newPath;
-                    onPathChanged?.Invoke();
-                    // パスが変更されたらデータベースを読み込む
-                    if (label.Contains("AE"))
-                    {
-                        _assetBrowserViewModel.LoadAEDatabase(path);
-                    }
-                    else if (label.Contains("KA"))
-                    {
-                        _assetBrowserViewModel.LoadKADatabase(path);
-                    }
-                }
-            }
             EditorGUILayout.EndHorizontal();
         }
     }
