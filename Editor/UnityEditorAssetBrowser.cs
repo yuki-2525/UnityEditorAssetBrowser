@@ -50,6 +50,7 @@ namespace UnityEditorAssetBrowser
         private AssetBrowserViewModel _assetBrowserViewModel;
         private SearchViewModel _searchViewModel;
         private SearchView _searchView;
+        private PaginationView _paginationView;
 
         /// <summary>AvatarExplorerのデータベース</summary>
         private AvatarExplorerDatabase? aeDatabase;
@@ -154,6 +155,7 @@ namespace UnityEditorAssetBrowser
                 _assetBrowserViewModel,
                 _paginationViewModel
             );
+            _paginationView = new PaginationView(_paginationViewModel, _assetBrowserViewModel);
         }
         #endregion
 
@@ -282,7 +284,7 @@ namespace UnityEditorAssetBrowser
         {
             GUILayout.BeginVertical();
             DrawScrollView();
-            DrawPaginationButtons();
+            _paginationView.DrawPaginationButtons();
             GUILayout.EndVertical();
         }
 
@@ -316,28 +318,6 @@ namespace UnityEditorAssetBrowser
                     ShowWorldObjectsContent();
                     break;
             }
-        }
-
-        /// <summary>
-        /// ページネーションボタンの描画
-        /// </summary>
-        private void DrawPaginationButtons()
-        {
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("前へ", GUILayout.Width(100)))
-            {
-                _paginationViewModel.MoveToPreviousPage();
-            }
-            var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
-                _paginationViewModel.SelectedTab
-            );
-            int totalPages = _paginationViewModel.GetTotalPages(currentItems);
-            GUILayout.Label($"ページ {_paginationViewModel.CurrentPage + 1} / {totalPages}");
-            if (GUILayout.Button("次へ", GUILayout.Width(100)))
-            {
-                _paginationViewModel.MoveToNextPage(totalPages);
-            }
-            GUILayout.EndHorizontal();
         }
         #endregion
 
