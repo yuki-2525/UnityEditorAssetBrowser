@@ -16,6 +16,7 @@ using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
 using UnityEditorAssetBrowser.Services;
 using UnityEditorAssetBrowser.ViewModels;
+using UnityEditorAssetBrowser.Views;
 using UnityEngine;
 
 namespace UnityEditorAssetBrowser
@@ -47,6 +48,8 @@ namespace UnityEditorAssetBrowser
         private PaginationInfo _paginationInfo = new PaginationInfo();
         private PaginationViewModel _paginationViewModel;
         private AssetBrowserViewModel _assetBrowserViewModel;
+        private SearchViewModel _searchViewModel;
+        private SearchView _searchView;
 
         /// <summary>AvatarExplorerのデータベース</summary>
         private AvatarExplorerDatabase? aeDatabase;
@@ -70,7 +73,7 @@ namespace UnityEditorAssetBrowser
         private string kaDatabasePath = "";
 
         /// <summary>詳細検索の表示状態</summary>
-        private bool showAdvancedSearch => searchViewModel.SearchCriteria.ShowAdvancedSearch;
+        private bool showAdvancedSearch => _searchViewModel.SearchCriteria.ShowAdvancedSearch;
 
         /// <summary>タブのラベル</summary>
         private string[] tabs = { "アバター", "アバター関連", "ワールド" };
@@ -131,21 +134,25 @@ namespace UnityEditorAssetBrowser
 
         private AssetItem assetItem = new AssetItem();
 
-        private SearchViewModel searchViewModel = new SearchViewModel(null, null, null, null);
-
         /// <summary>
         /// コンストラクタ
         /// </summary>
         public UnityEditorAssetBrowser()
         {
             _paginationViewModel = new PaginationViewModel(_paginationInfo);
+            _searchViewModel = new SearchViewModel(null, null, null, null);
             _assetBrowserViewModel = new AssetBrowserViewModel(
                 aeDatabase,
                 kaAvatarsDatabase,
                 kaWearablesDatabase,
                 kaWorldObjectsDatabase,
                 _paginationInfo,
-                searchViewModel
+                _searchViewModel
+            );
+            _searchView = new SearchView(
+                _searchViewModel,
+                _assetBrowserViewModel,
+                _paginationViewModel
             );
         }
         #endregion
@@ -174,31 +181,13 @@ namespace UnityEditorAssetBrowser
 
             // データベースを読み込む
             if (!string.IsNullOrEmpty(aeDatabasePath))
-                LoadAndDisplayAEDatabase();
+            {
+                _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
+            }
             if (!string.IsNullOrEmpty(kaDatabasePath))
-                LoadAndDisplayKADatabase();
-
-            // SearchViewModelを初期化
-            searchViewModel = new SearchViewModel(
-                aeDatabase,
-                kaAvatarsDatabase,
-                kaWearablesDatabase,
-                kaWorldObjectsDatabase
-            );
-
-            // PaginationViewModelを初期化（既存のPaginationInfoを使用）
-            _paginationViewModel = new PaginationViewModel(_paginationInfo);
-
-            // AssetBrowserViewModelを初期化
-            _assetBrowserViewModel = new AssetBrowserViewModel(
-                aeDatabase,
-                kaAvatarsDatabase,
-                kaWearablesDatabase,
-                kaWorldObjectsDatabase,
-                _paginationInfo,
-                searchViewModel
-            );
-            _assetBrowserViewModel.Initialize(); // 初期化処理を呼び出し
+            {
+                _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
+            }
 
             // シーン変更時に自動的に更新を実行
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -220,6 +209,7 @@ namespace UnityEditorAssetBrowser
         {
             // 画像キャッシュを更新
             RefreshImageCache();
+            _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
         }
 
         /// <summary>
@@ -241,10 +231,18 @@ namespace UnityEditorAssetBrowser
             EditorGUILayout.BeginVertical();
             EditorGUILayout.Space(10);
 
-            DrawDatabasePathFields();
+            // データベースパスフィールドと検索フィールドを描画
+            _searchView.DrawDatabasePathFields(
+                ref aeDatabasePath,
+                ref kaDatabasePath,
+                () => _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath),
+                () => _assetBrowserViewModel.LoadKADatabase(kaDatabasePath)
+            );
+
             DrawTabBar();
-            DrawSearchField();
-            DrawSearchResultCount();
+            _searchView.DrawSearchField();
+            _searchView.DrawSearchResultCount();
+
             DrawContentArea();
 
             if (GUI.changed)
@@ -259,167 +257,6 @@ namespace UnityEditorAssetBrowser
         }
 
         /// <summary>
-        /// データベースパス入力フィールドの描画
-        /// </summary>
-        private void DrawDatabasePathFields()
-        {
-            DrawDatabasePathField(
-                "AE Database Path:",
-                ref aeDatabasePath,
-                LoadAndDisplayAEDatabase
-            );
-            DrawDatabasePathField(
-                "KA Database Path:",
-                ref kaDatabasePath,
-                LoadAndDisplayKADatabase
-            );
-
-            // リフレッシュボタンを追加（一つにまとめる）
-            EditorGUILayout.BeginHorizontal();
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("更新", GUILayout.Width(100)))
-            {
-                LoadAndDisplayAEDatabase();
-                LoadAndDisplayKADatabase();
-                Repaint();
-            }
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space(10);
-        }
-
-        /// <summary>
-        /// データベースパス入力フィールドの描画
-        /// </summary>
-        /// <param name="label">ラベル</param>
-        /// <param name="path">パス</param>
-        /// <param name="onPathChanged">パス変更時のコールバック</param>
-        private void DrawDatabasePathField(string label, ref string path, Action onPathChanged)
-        {
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(label, GUILayout.Width(120));
-
-            // パスを編集不可のテキストフィールドとして表示
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.TextField(path);
-            EditorGUI.EndDisabledGroup();
-
-            // 削除ボタンを追加（Browseボタンの左に配置）
-            if (!string.IsNullOrEmpty(path) && GUILayout.Button("削除", GUILayout.Width(60)))
-            {
-                path = "";
-
-                // データベースオブジェクトを削除
-                if (label == "AE Database Path:")
-                {
-                    aeDatabase = null;
-                }
-                else if (label == "KA Database Path:")
-                {
-                    kaAvatarsDatabase = null;
-                    kaWearablesDatabase = null;
-                    kaWorldObjectsDatabase = null;
-                }
-
-                // SearchViewModelを更新
-                searchViewModel = new SearchViewModel(
-                    aeDatabase,
-                    kaAvatarsDatabase,
-                    kaWearablesDatabase,
-                    kaWorldObjectsDatabase
-                );
-                searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
-
-                // AssetBrowserViewModelを再初期化
-                _assetBrowserViewModel = new AssetBrowserViewModel(
-                    aeDatabase,
-                    kaAvatarsDatabase,
-                    kaWearablesDatabase,
-                    kaWorldObjectsDatabase,
-                    _paginationInfo,
-                    searchViewModel
-                );
-                _assetBrowserViewModel.Initialize();
-
-                // ページをリセット
-                _paginationViewModel.ResetPage();
-
-                // 画像キャッシュをクリア
-                ImageServices.Instance.ClearCache();
-
-                // DatabaseServiceにパスを保存
-                DatabaseService.SetAEDatabasePath(aeDatabasePath);
-                DatabaseService.SetKADatabasePath(kaDatabasePath);
-                DatabaseService.SaveSettings();
-
-                // コールバックを呼び出し
-                onPathChanged?.Invoke();
-
-                // 再描画を要求
-                Repaint();
-            }
-
-            if (GUILayout.Button("Browse", GUILayout.Width(60)))
-            {
-                var selectedPath = EditorUtility.OpenFolderPanel(
-                    $"Select {label} Directory",
-                    "",
-                    ""
-                );
-                if (!string.IsNullOrEmpty(selectedPath))
-                {
-                    path = selectedPath;
-
-                    // データベースを読み込む
-                    if (label == "AE Database Path:")
-                    {
-                        LoadAndDisplayAEDatabase();
-                    }
-                    else if (label == "KA Database Path:")
-                    {
-                        LoadAndDisplayKADatabase();
-                    }
-
-                    // SearchViewModelを更新
-                    searchViewModel = new SearchViewModel(
-                        aeDatabase,
-                        kaAvatarsDatabase,
-                        kaWearablesDatabase,
-                        kaWorldObjectsDatabase
-                    );
-                    searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
-
-                    // AssetBrowserViewModelを再初期化
-                    _assetBrowserViewModel = new AssetBrowserViewModel(
-                        aeDatabase,
-                        kaAvatarsDatabase,
-                        kaWearablesDatabase,
-                        kaWorldObjectsDatabase,
-                        _paginationInfo,
-                        searchViewModel
-                    );
-                    _assetBrowserViewModel.Initialize();
-
-                    // ページをリセット
-                    _paginationViewModel.ResetPage();
-
-                    // DatabaseServiceにパスを保存
-                    DatabaseService.SetAEDatabasePath(aeDatabasePath);
-                    DatabaseService.SetKADatabasePath(kaDatabasePath);
-                    DatabaseService.SaveSettings();
-
-                    // コールバックを呼び出し
-                    onPathChanged?.Invoke();
-
-                    // 再描画を要求
-                    Repaint();
-                }
-            }
-
-            EditorGUILayout.EndHorizontal();
-        }
-
-        /// <summary>
         /// タブバーの描画
         /// </summary>
         private void DrawTabBar()
@@ -431,204 +268,10 @@ namespace UnityEditorAssetBrowser
                 _paginationViewModel.ResetPage();
 
                 // タブが切り替わったときにSearchViewModelに通知
-                searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
 
                 Repaint();
             }
-            EditorGUILayout.Space(10);
-        }
-
-        /// <summary>
-        /// 検索フィールドの描画
-        /// </summary>
-        private void DrawSearchField()
-        {
-            EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-            // 基本検索フィールド
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("検索:", GUILayout.Width(60));
-            var newSearchQuery = EditorGUILayout.TextField(
-                searchViewModel.SearchCriteria.SearchQuery
-            );
-            if (newSearchQuery != searchViewModel.SearchCriteria.SearchQuery)
-            {
-                searchViewModel.SearchCriteria.SearchQuery = newSearchQuery;
-                _paginationViewModel.ResetPage(); // 検索条件が変更されたらページをリセット
-                Repaint();
-            }
-
-            // クリアボタン
-            if (GUILayout.Button("クリア", GUILayout.Width(60)))
-            {
-                searchViewModel.ClearSearchCriteria();
-                _paginationViewModel.ResetPage();
-                Repaint();
-            }
-
-            // 詳細検索のトグル
-            var newShowAdvancedSearch = EditorGUILayout.ToggleLeft(
-                "詳細検索",
-                searchViewModel.SearchCriteria.ShowAdvancedSearch,
-                GUILayout.Width(100)
-            );
-            if (newShowAdvancedSearch != searchViewModel.SearchCriteria.ShowAdvancedSearch)
-            {
-                searchViewModel.SearchCriteria.ShowAdvancedSearch = newShowAdvancedSearch;
-                _paginationViewModel.ResetPage();
-                Repaint();
-            }
-
-            // ソートボタン
-            if (GUILayout.Button("▼ 表示順", GUILayout.Width(80)))
-            {
-                var menu = new GenericMenu();
-                menu.AddItem(
-                    new GUIContent("追加順（新しい順）"),
-                    currentSortMethod == SortMethod.CreatedDateDesc,
-                    () => SetSortMethod(SortMethod.CreatedDateDesc)
-                );
-                menu.AddItem(
-                    new GUIContent("追加順（古い順）"),
-                    currentSortMethod == SortMethod.CreatedDateAsc,
-                    () => SetSortMethod(SortMethod.CreatedDateAsc)
-                );
-                menu.AddItem(
-                    new GUIContent("アセット名（A-Z順）"),
-                    currentSortMethod == SortMethod.TitleAsc,
-                    () => SetSortMethod(SortMethod.TitleAsc)
-                );
-                menu.AddItem(
-                    new GUIContent("アセット名（Z-A順）"),
-                    currentSortMethod == SortMethod.TitleDesc,
-                    () => SetSortMethod(SortMethod.TitleDesc)
-                );
-                menu.AddItem(
-                    new GUIContent("ショップ名（A-Z順）"),
-                    currentSortMethod == SortMethod.AuthorAsc,
-                    () => SetSortMethod(SortMethod.AuthorAsc)
-                );
-                menu.AddItem(
-                    new GUIContent("ショップ名（Z-A順）"),
-                    currentSortMethod == SortMethod.AuthorDesc,
-                    () => SetSortMethod(SortMethod.AuthorDesc)
-                );
-                menu.ShowAsContext();
-            }
-            EditorGUILayout.EndHorizontal();
-
-            // 詳細検索フィールド
-            if (showAdvancedSearch)
-            {
-                EditorGUI.indentLevel++;
-                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-
-                // タイトル検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("タイトル:", GUILayout.Width(100));
-                var newTitleSearch = EditorGUILayout.TextField(
-                    searchViewModel.SearchCriteria.TitleSearch
-                );
-                if (newTitleSearch != searchViewModel.SearchCriteria.TitleSearch)
-                {
-                    searchViewModel.SearchCriteria.TitleSearch = newTitleSearch;
-                    Repaint();
-                }
-                EditorGUILayout.EndHorizontal();
-
-                // 作者名検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("作者名:", GUILayout.Width(100));
-                var newAuthorSearch = EditorGUILayout.TextField(
-                    searchViewModel.SearchCriteria.AuthorSearch
-                );
-                if (newAuthorSearch != searchViewModel.SearchCriteria.AuthorSearch)
-                {
-                    searchViewModel.SearchCriteria.AuthorSearch = newAuthorSearch;
-                    Repaint();
-                }
-                EditorGUILayout.EndHorizontal();
-
-                // カテゴリ検索（アバタータブ以外で表示）
-                if (_paginationViewModel.SelectedTab != 0)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("カテゴリ:", GUILayout.Width(100));
-                    var newCategorySearch = EditorGUILayout.TextField(
-                        searchViewModel.SearchCriteria.CategorySearch
-                    );
-                    if (newCategorySearch != searchViewModel.SearchCriteria.CategorySearch)
-                    {
-                        searchViewModel.SearchCriteria.CategorySearch = newCategorySearch;
-                        Repaint();
-                    }
-                    EditorGUILayout.EndHorizontal();
-                }
-
-                // 対応アバター検索（アイテムタブのみで表示）
-                if (_paginationViewModel.SelectedTab == 1)
-                {
-                    EditorGUILayout.BeginHorizontal();
-                    EditorGUILayout.LabelField("対応アバター:", GUILayout.Width(100));
-                    var newSupportedAvatarsSearch = EditorGUILayout.TextField(
-                        searchViewModel.SearchCriteria.SupportedAvatarsSearch
-                    );
-                    if (
-                        newSupportedAvatarsSearch
-                        != searchViewModel.SearchCriteria.SupportedAvatarsSearch
-                    )
-                    {
-                        searchViewModel.SearchCriteria.SupportedAvatarsSearch =
-                            newSupportedAvatarsSearch;
-                        Repaint();
-                    }
-                    EditorGUILayout.EndHorizontal();
-                }
-
-                // タグ検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("タグ:", GUILayout.Width(100));
-                var newTagsSearch = EditorGUILayout.TextField(
-                    searchViewModel.SearchCriteria.TagsSearch
-                );
-                if (newTagsSearch != searchViewModel.SearchCriteria.TagsSearch)
-                {
-                    searchViewModel.SearchCriteria.TagsSearch = newTagsSearch;
-                    Repaint();
-                }
-                EditorGUILayout.EndHorizontal();
-
-                // メモ検索
-                EditorGUILayout.BeginHorizontal();
-                EditorGUILayout.LabelField("メモ:", GUILayout.Width(100));
-                var newMemoSearch = EditorGUILayout.TextField(
-                    searchViewModel.SearchCriteria.MemoSearch
-                );
-                if (newMemoSearch != searchViewModel.SearchCriteria.MemoSearch)
-                {
-                    searchViewModel.SearchCriteria.MemoSearch = newMemoSearch;
-                    Repaint();
-                }
-                EditorGUILayout.EndHorizontal();
-
-                EditorGUILayout.EndVertical();
-                EditorGUI.indentLevel--;
-            }
-
-            EditorGUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// 検索結果件数の描画
-        /// </summary>
-        private void DrawSearchResultCount()
-        {
-            int totalItems = _paginationViewModel.GetCurrentTabItemCount(
-                () => _assetBrowserViewModel.GetFilteredAvatars(),
-                () => _assetBrowserViewModel.GetFilteredItems(),
-                () => _assetBrowserViewModel.GetFilteredWorldObjects()
-            );
-            EditorGUILayout.LabelField($"検索結果: {totalItems}件");
             EditorGUILayout.Space(10);
         }
 
@@ -871,23 +514,13 @@ namespace UnityEditorAssetBrowser
             // データベースを再読み込み
             if (!string.IsNullOrEmpty(aeDatabasePath))
             {
-                LoadAndDisplayAEDatabase();
+                _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
             }
 
             if (!string.IsNullOrEmpty(kaDatabasePath))
             {
-                LoadAndDisplayKADatabase();
+                _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
             }
-
-            // AssetBrowserViewModelを更新
-            _assetBrowserViewModel = new AssetBrowserViewModel(
-                aeDatabase,
-                kaAvatarsDatabase,
-                kaWearablesDatabase,
-                kaWorldObjectsDatabase,
-                _paginationInfo,
-                searchViewModel
-            );
 
             // ページをリセット
             _paginationViewModel.ResetPage();
@@ -907,7 +540,10 @@ namespace UnityEditorAssetBrowser
         private void LoadAndDisplayAEDatabase()
         {
             if (string.IsNullOrEmpty(aeDatabasePath))
+            {
+                aeDatabase = null;
                 return;
+            }
 
             DatabaseService.SetAEDatabasePath(aeDatabasePath);
             DatabaseService.LoadAndUpdateAEDatabase();
@@ -923,7 +559,12 @@ namespace UnityEditorAssetBrowser
         private void LoadAndDisplayKADatabase()
         {
             if (string.IsNullOrEmpty(kaDatabasePath))
+            {
+                kaAvatarsDatabase = null;
+                kaWearablesDatabase = null;
+                kaWorldObjectsDatabase = null;
                 return;
+            }
 
             DatabaseService.SetKADatabasePath(kaDatabasePath);
             DatabaseService.LoadAndUpdateKADatabase();

@@ -36,6 +36,8 @@ namespace UnityEditorAssetBrowser.ViewModels
 
         public string? LastError => _lastError;
 
+        public SortMethod CurrentSortMethod => _currentSortMethod;
+
         public AssetBrowserViewModel(
             AvatarExplorerDatabase? aeDatabase,
             KonoAssetAvatarsDatabase? kaAvatarsDatabase,
@@ -292,12 +294,12 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <summary>
         /// ソート方法を設定する
         /// </summary>
-        /// <param name="sortMethod">新しいソート方法</param>
-        public void SetSortMethod(SortMethod sortMethod)
+        /// <param name="method">設定するソート方法</param>
+        public void SetSortMethod(SortMethod method)
         {
-            if (_currentSortMethod != sortMethod)
+            if (_currentSortMethod != method)
             {
-                _currentSortMethod = sortMethod;
+                _currentSortMethod = method;
                 SaveSortMethod();
                 SortMethodChanged?.Invoke();
             }
@@ -609,6 +611,50 @@ namespace UnityEditorAssetBrowser.ViewModels
                 return ImageServices.Instance.LoadTexture(fullImagePath);
             }
             return null;
+        }
+
+        public void LoadAEDatabase(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                ClearAEDatabase();
+                return;
+            }
+
+            DatabaseService.SetAEDatabasePath(path);
+            DatabaseService.LoadAndUpdateAEDatabase();
+            _aeDatabase = DatabaseService.GetAEDatabase();
+            DatabaseUpdated?.Invoke();
+        }
+
+        public void LoadKADatabase(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                ClearKADatabase();
+                return;
+            }
+
+            DatabaseService.SetKADatabasePath(path);
+            DatabaseService.LoadAndUpdateKADatabase();
+            _kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
+            _kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
+            _kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
+            DatabaseUpdated?.Invoke();
+        }
+
+        public void ClearAEDatabase()
+        {
+            _aeDatabase = null;
+            DatabaseUpdated?.Invoke();
+        }
+
+        public void ClearKADatabase()
+        {
+            _kaAvatarsDatabase = null;
+            _kaWearablesDatabase = null;
+            _kaWorldObjectsDatabase = null;
+            DatabaseUpdated?.Invoke();
         }
     }
 }
