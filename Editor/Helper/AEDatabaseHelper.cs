@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Newtonsoft.Json;
 using UnityEditorAssetBrowser.Models;
 using UnityEngine;
@@ -59,13 +60,39 @@ namespace UnityEditorAssetBrowser.Helper
                     var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(json);
                     if (items != null)
                     {
+                        // 対応アバターのパスを変換
+                        foreach (var item in items)
+                        {
+                            if (item.SupportedAvatar != null && item.SupportedAvatar.Length > 0)
+                            {
+                                item.SupportedAvatar = ConvertSupportedAvatarPaths(
+                                    items,
+                                    item.SupportedAvatar
+                                );
+                            }
+                        }
                         return new AvatarExplorerDatabase(items);
                     }
                 }
                 else
                 {
                     // オブジェクト形式の場合は、そのままAvatarExplorerDatabaseとしてデシリアライズ
-                    return JsonConvert.DeserializeObject<AvatarExplorerDatabase>(json);
+                    var database = JsonConvert.DeserializeObject<AvatarExplorerDatabase>(json);
+                    if (database?.Items != null)
+                    {
+                        // 対応アバターのパスを変換
+                        foreach (var item in database.Items)
+                        {
+                            if (item.SupportedAvatar != null && item.SupportedAvatar.Length > 0)
+                            {
+                                item.SupportedAvatar = ConvertSupportedAvatarPaths(
+                                    database.Items.ToArray(),
+                                    item.SupportedAvatar
+                                );
+                            }
+                        }
+                    }
+                    return database;
                 }
 
                 return null;
@@ -94,6 +121,29 @@ namespace UnityEditorAssetBrowser.Helper
             {
                 Debug.LogWarning($"Error saving AE database: {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// 対応アバターのパスをアバター名に変換する
+        /// </summary>
+        /// <param name="items">全アイテムリスト</param>
+        /// <param name="supportedAvatars">変換対象の対応アバターパス配列</param>
+        /// <returns>変換後のアバター名配列</returns>
+        private static string[] ConvertSupportedAvatarPaths(
+            AvatarExplorerItem[] items,
+            string[] supportedAvatars
+        )
+        {
+            var supportedAvatarNames = new List<string>();
+            foreach (var avatar in supportedAvatars)
+            {
+                var avatarData = items.FirstOrDefault(x => x.ItemPath == avatar);
+                if (avatarData != null)
+                {
+                    supportedAvatarNames.Add(avatarData.Title.Replace(" ", ""));
+                }
+            }
+            return supportedAvatarNames.ToArray();
         }
     }
 }

@@ -481,6 +481,11 @@ namespace UnityEditorAssetBrowser.ViewModels
             {
                 foreach (var item in _kaWearablesDatabase.data)
                 {
+                    if (string.IsNullOrEmpty(item.description.imageFilename))
+                    {
+                        continue;
+                    }
+
                     var imagePath = Path.Combine(
                         kaDatabasePath,
                         "images",
