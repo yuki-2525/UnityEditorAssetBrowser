@@ -14,23 +14,12 @@ namespace UnityEditorAssetBrowser.Views
 {
     public class AssetItemView
     {
-        private const string AE_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_AEDatabasePath";
-        private const string KA_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_KADatabasePath";
-
-        private readonly string kaDatabasePath;
-        private readonly string aeDatabasePath;
-        private AvatarExplorerDatabase? aeDatabase;
+        private readonly AvatarExplorerDatabase? aeDatabase;
         private Dictionary<string, bool> memoFoldouts = new Dictionary<string, bool>();
         private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
 
-        public AssetItemView(
-            string aeDatabasePath,
-            string kaDatabasePath,
-            AvatarExplorerDatabase? aeDatabase
-        )
+        public AssetItemView(AvatarExplorerDatabase? aeDatabase)
         {
-            this.aeDatabasePath = aeDatabasePath;
-            this.kaDatabasePath = kaDatabasePath;
             this.aeDatabase = aeDatabase;
         }
 
@@ -57,8 +46,8 @@ namespace UnityEditorAssetBrowser.Views
                 item.SupportedAvatars,
                 item.Tags,
                 item.Memo,
-                showCategory, // カテゴリの表示を制御
-                showSupportedAvatars // 対応アバターの表示を制御
+                showCategory,
+                showSupportedAvatars
             );
             DrawUnityPackageSection(item.ItemPath, item.Title);
             GUILayout.EndVertical();
@@ -77,7 +66,9 @@ namespace UnityEditorAssetBrowser.Views
         )
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+            var itemPath = Path.GetFullPath(
+                Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
+            );
 
             // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
@@ -99,8 +90,8 @@ namespace UnityEditorAssetBrowser.Views
                 null,
                 item.description.tags,
                 item.description.memo,
-                showCategory, // カテゴリの表示を制御
-                showSupportedAvatars // 対応アバターの表示を制御
+                showCategory,
+                showSupportedAvatars
             );
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
@@ -117,7 +108,9 @@ namespace UnityEditorAssetBrowser.Views
         )
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+            var itemPath = Path.GetFullPath(
+                Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
+            );
 
             // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
@@ -139,8 +132,8 @@ namespace UnityEditorAssetBrowser.Views
                 item.supportedAvatars,
                 item.description.tags,
                 item.description.memo,
-                true, // ウェアラブルタブではカテゴリを表示する
-                showSupportedAvatars // 対応アバターの表示を制御
+                true,
+                showSupportedAvatars
             );
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
@@ -153,7 +146,9 @@ namespace UnityEditorAssetBrowser.Views
         public void ShowKonoAssetWorldObjectItem(KonoAssetWorldObjectItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
-            var itemPath = Path.GetFullPath(Path.Combine(kaDatabasePath, "data", item.id));
+            var itemPath = Path.GetFullPath(
+                Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
+            );
 
             // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
@@ -172,11 +167,11 @@ namespace UnityEditorAssetBrowser.Views
                 itemPath,
                 createdDate,
                 item.category,
-                null, // ワールドオブジェクトタブでは対応アバターを表示しない
+                null,
                 item.description.tags,
                 item.description.memo,
-                true, // ワールドオブジェクトタブではカテゴリを表示する
-                false // ワールドオブジェクトタブでは対応アバターを表示しない
+                true,
+                false
             );
             DrawUnityPackageSection(itemPath, item.description.name);
             GUILayout.EndVertical();
@@ -377,9 +372,12 @@ namespace UnityEditorAssetBrowser.Views
         {
             if (imagePath.StartsWith("Datas"))
             {
-                return Path.Combine(aeDatabasePath, imagePath.Replace("Datas\\", ""));
+                return Path.Combine(
+                    DatabaseService.GetAEDatabasePath(),
+                    imagePath.Replace("Datas\\", "")
+                );
             }
-            return Path.Combine(kaDatabasePath, "images", imagePath);
+            return Path.Combine(DatabaseService.GetKADatabasePath(), "images", imagePath);
         }
 
         /// <summary>
@@ -390,26 +388,25 @@ namespace UnityEditorAssetBrowser.Views
         {
             // 相対パスの場合はAEDatabasePathと結合
             string fullPath = itemPath;
-            if (itemPath.StartsWith("Datas\\") && aeDatabasePath != null)
+            if (itemPath.StartsWith("Datas\\"))
             {
                 // パスの区切り文字を正規化
                 string normalizedItemPath = itemPath.Replace(
                     "\\",
                     Path.DirectorySeparatorChar.ToString()
                 );
-                string normalizedAePath = aeDatabasePath.Replace(
-                    "/",
-                    Path.DirectorySeparatorChar.ToString()
-                );
+                string normalizedAePath = DatabaseService
+                    .GetAEDatabasePath()
+                    .Replace("/", Path.DirectorySeparatorChar.ToString());
 
                 // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
                 string itemName = Path.GetFileName(normalizedItemPath);
                 fullPath = Path.Combine(normalizedAePath, "Items", itemName);
             }
-            else if (!string.IsNullOrEmpty(kaDatabasePath))
+            else
             {
                 // KAのアイテムの場合、kaDatabasePathと結合
-                fullPath = Path.Combine(kaDatabasePath, "data", itemPath);
+                fullPath = Path.Combine(DatabaseService.GetKADatabasePath(), "data", itemPath);
             }
 
             if (Directory.Exists(fullPath))
@@ -434,17 +431,16 @@ namespace UnityEditorAssetBrowser.Views
         {
             // 相対パスの場合はAEDatabasePathと結合
             string fullPath = itemPath;
-            if (itemPath.StartsWith("Datas\\") && aeDatabasePath != null)
+            if (itemPath.StartsWith("Datas\\"))
             {
                 // パスの区切り文字を正規化
                 string normalizedItemPath = itemPath.Replace(
                     "\\",
                     Path.DirectorySeparatorChar.ToString()
                 );
-                string normalizedAePath = aeDatabasePath.Replace(
-                    "/",
-                    Path.DirectorySeparatorChar.ToString()
-                );
+                string normalizedAePath = DatabaseService
+                    .GetAEDatabasePath()
+                    .Replace("/", Path.DirectorySeparatorChar.ToString());
 
                 // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
                 string fileName = Path.GetFileName(normalizedItemPath);

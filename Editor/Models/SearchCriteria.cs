@@ -271,6 +271,28 @@ namespace UnityEditorAssetBrowser.Models
             CurrentPage = 1;
         }
 
+        /// <summary>
+        /// タブ固有の検索条件をクリアする
+        /// </summary>
+        /// <param name="tabIndex">タブインデックス</param>
+        public void ClearTabSpecificCriteria(int tabIndex)
+        {
+            switch (tabIndex)
+            {
+                case 0: // アバタータブ
+                    CategorySearch = "";
+                    SupportedAvatarsSearch = "";
+                    break;
+                case 2: // ワールドタブ
+                    SupportedAvatarsSearch = "";
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 検索条件をコピーする
+        /// </summary>
+        /// <returns>コピーされた検索条件</returns>
         public SearchCriteria Clone()
         {
             return new SearchCriteria
@@ -283,6 +305,12 @@ namespace UnityEditorAssetBrowser.Models
                 SupportedAvatarsSearch = this.SupportedAvatarsSearch,
                 TagsSearch = this.TagsSearch,
                 MemoSearch = this.MemoSearch,
+                SortMethod = this.SortMethod,
+                ShowAvatars = this.ShowAvatars,
+                ShowWearables = this.ShowWearables,
+                ShowWorldObjects = this.ShowWorldObjects,
+                CurrentPage = this.CurrentPage,
+                ItemsPerPage = this.ItemsPerPage,
             };
         }
     }

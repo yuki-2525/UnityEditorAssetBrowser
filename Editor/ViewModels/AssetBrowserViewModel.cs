@@ -86,41 +86,6 @@ namespace UnityEditorAssetBrowser.ViewModels
         }
 
         /// <summary>
-        /// 現在のタブのアイテム数を取得
-        /// </summary>
-        /// <param name="getSelectedTab">現在のタブを取得する関数</param>
-        /// <returns>現在のタブのアイテム数</returns>
-        public int GetCurrentTabItemCount(
-            Func<List<object>> getFilteredAvatars,
-            Func<List<object>> getFilteredItems,
-            Func<List<object>> getFilteredWorldObjects,
-            int selectedTab
-        )
-        {
-            switch (selectedTab)
-            {
-                case 0:
-                    return getFilteredAvatars().Count;
-                case 1:
-                    return getFilteredItems().Count;
-                case 2:
-                    return getFilteredWorldObjects().Count;
-                default:
-                    return 0;
-            }
-        }
-
-        /// <summary>
-        /// 総ページ数を取得
-        /// </summary>
-        /// <param name="getCurrentTabItems">現在のタブのアイテムを取得する関数</param>
-        /// <returns>総ページ数</returns>
-        public int GetTotalPages(List<object> items)
-        {
-            return (int)Math.Ceiling((double)items.Count / PaginationInfo.ITEMS_PER_PAGE);
-        }
-
-        /// <summary>
         /// フィルターされたアバターリストを取得
         /// </summary>
         /// <returns>フィルターされたアバターリスト</returns>
@@ -235,26 +200,6 @@ namespace UnityEditorAssetBrowser.ViewModels
                     return items.OrderByDescending(item => GetAuthor(item)).ToList();
                 default:
                     return items;
-            }
-        }
-
-        /// <summary>
-        /// 現在のタブのアイテムを取得
-        /// </summary>
-        /// <param name="selectedTab">現在のタブインデックス</param>
-        /// <returns>現在のタブのアイテムリスト</returns>
-        public List<object> GetCurrentTabItems(int selectedTab)
-        {
-            switch (selectedTab)
-            {
-                case 0:
-                    return GetFilteredAvatars();
-                case 1:
-                    return GetFilteredItems();
-                case 2:
-                    return GetFilteredWorldObjects();
-                default:
-                    return new List<object>();
             }
         }
 
@@ -660,6 +605,23 @@ namespace UnityEditorAssetBrowser.ViewModels
             _kaWearablesDatabase = null;
             _kaWorldObjectsDatabase = null;
             DatabaseUpdated?.Invoke();
+        }
+
+        /// <summary>
+        /// 現在のタブのアイテムを取得
+        /// </summary>
+        /// <param name="selectedTab">選択中のタブ</param>
+        /// <returns>現在のタブのアイテムリスト</returns>
+        public List<object> GetCurrentTabItems(int selectedTab)
+        {
+            var items = selectedTab switch
+            {
+                0 => GetFilteredAvatars(),
+                1 => GetFilteredItems(),
+                2 => GetFilteredWorldObjects(),
+                _ => new List<object>(),
+            };
+            return items;
         }
     }
 }

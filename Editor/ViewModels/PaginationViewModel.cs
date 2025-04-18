@@ -121,17 +121,12 @@ namespace UnityEditorAssetBrowser.ViewModels
             Func<List<object>> getFilteredWorldObjects
         )
         {
-            switch (_paginationInfo.SelectedTab)
-            {
-                case 0:
-                    return getFilteredAvatars().Count;
-                case 1:
-                    return getFilteredItems().Count;
-                case 2:
-                    return getFilteredWorldObjects().Count;
-                default:
-                    return 0;
-            }
+            var items = GetCurrentTabItems(
+                getFilteredAvatars,
+                getFilteredItems,
+                getFilteredWorldObjects
+            );
+            return items.Count;
         }
 
         /// <summary>
@@ -147,17 +142,13 @@ namespace UnityEditorAssetBrowser.ViewModels
             Func<List<object>> getFilteredWorldObjects
         )
         {
-            switch (_paginationInfo.SelectedTab)
+            return _paginationInfo.SelectedTab switch
             {
-                case 0:
-                    return getFilteredAvatars();
-                case 1:
-                    return getFilteredItems();
-                case 2:
-                    return getFilteredWorldObjects();
-                default:
-                    return new List<object>();
-            }
+                0 => getFilteredAvatars(),
+                1 => getFilteredItems(),
+                2 => getFilteredWorldObjects(),
+                _ => new List<object>(),
+            };
         }
     }
 }

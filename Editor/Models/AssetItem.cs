@@ -8,6 +8,9 @@ namespace UnityEditorAssetBrowser.Models
 {
     public class AssetItem
     {
+        private const string WORLD_CATEGORY_JP = "ワールド";
+        private const string WORLD_CATEGORY_EN = "world";
+
         /// <summary>
         /// アイテムのカテゴリー名を取得
         /// </summary>
@@ -163,6 +166,17 @@ namespace UnityEditorAssetBrowser.Models
                 return worldItem.description.memo ?? string.Empty;
             }
             return string.Empty;
+        }
+
+        /// <summary>
+        /// カテゴリーがワールド関連かどうかを判定
+        /// </summary>
+        /// <param name="category">カテゴリー名</param>
+        /// <returns>ワールド関連の場合true</returns>
+        public bool IsWorldCategory(string category)
+        {
+            return category.Contains(WORLD_CATEGORY_JP, StringComparison.OrdinalIgnoreCase)
+                || category.Contains(WORLD_CATEGORY_EN, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -4,13 +4,11 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditorAssetBrowser.Models;
-using UnityEditorAssetBrowser.ViewModels;
 
 namespace UnityEditorAssetBrowser.Services
 {
-    public class ItemSearchService
+    public class ItemSearchService : AssetItem
     {
-        private readonly AssetItem assetItem = new AssetItem();
         private readonly AvatarExplorerDatabase? aeDatabase;
 
         public ItemSearchService(AvatarExplorerDatabase? aeDatabase = null)
@@ -139,10 +137,6 @@ namespace UnityEditorAssetBrowser.Services
             return true;
         }
 
-        private string GetTitle(object item) => assetItem.GetTitle(item);
-
-        private string GetAuthor(object item) => assetItem.GetAuthor(item);
-
         private bool IsTitleMatch(object item, string searchQuery)
         {
             var keywords = searchQuery.Split(
@@ -171,14 +165,7 @@ namespace UnityEditorAssetBrowser.Services
                 new[] { ' ', '　' },
                 StringSplitOptions.RemoveEmptyEntries
             );
-            string categoryName = "";
-
-            if (item is AvatarExplorerItem aeItem)
-                categoryName = aeItem.GetAECategoryName();
-            else if (item is KonoAssetWearableItem wearableItem)
-                categoryName = wearableItem.category ?? "";
-            else if (item is KonoAssetWorldObjectItem worldItem)
-                categoryName = worldItem.category ?? "";
+            string categoryName = GetItemCategoryName(item);
 
             return keywords.All(keyword =>
                 categoryName.IndexOf(keyword, StringComparison.InvariantCultureIgnoreCase) >= 0
@@ -248,22 +235,13 @@ namespace UnityEditorAssetBrowser.Services
                 new[] { ' ', '　' },
                 StringSplitOptions.RemoveEmptyEntries
             );
-            string? memo = null;
-
-            if (item is AvatarExplorerItem aeItem)
-                memo = aeItem.Memo;
-            else if (item is KonoAssetAvatarItem kaItem)
-                memo = kaItem.description.memo;
-            else if (item is KonoAssetWearableItem wearableItem)
-                memo = wearableItem.description.memo;
-            else if (item is KonoAssetWorldObjectItem worldItem)
-                memo = worldItem.description.memo;
+            string memo = GetMemo(item);
 
             if (string.IsNullOrEmpty(memo))
                 return false;
 
             return keywords.All(keyword =>
-                memo!.IndexOf(keyword, StringComparison.InvariantCultureIgnoreCase) >= 0
+                memo.IndexOf(keyword, StringComparison.InvariantCultureIgnoreCase) >= 0
             );
         }
     }

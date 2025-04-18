@@ -1,6 +1,7 @@
 #nullable enable
 
 using UnityEditor;
+using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
 using UnityEditorAssetBrowser.Services;
 using UnityEditorAssetBrowser.ViewModels;
@@ -26,8 +27,6 @@ namespace UnityEditorAssetBrowser.Views
             "アイテム",
             "ワールドオブジェクト",
         };
-        private GUIStyle? titleStyle;
-        private GUIStyle? boxStyle;
 
         public MainView(
             AssetBrowserViewModel assetBrowserViewModel,
@@ -48,7 +47,7 @@ namespace UnityEditorAssetBrowser.Views
             this.aeDatabasePath = aeDatabasePath;
             this.kaDatabasePath = kaDatabasePath;
             this.aeDatabase = aeDatabase;
-            _assetItemView = new AssetItemView(aeDatabasePath, kaDatabasePath, aeDatabase);
+            _assetItemView = new AssetItemView(aeDatabase);
         }
 
         #region UI Drawing Methods
@@ -68,13 +67,13 @@ namespace UnityEditorAssetBrowser.Views
                 {
                     _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
                     // AssetItemViewのインスタンスを再作成
-                    _assetItemView = new AssetItemView(aeDatabasePath, kaDatabasePath, aeDatabase);
+                    _assetItemView = new AssetItemView(aeDatabase);
                 },
                 () =>
                 {
                     _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
                     // AssetItemViewのインスタンスを再作成
-                    _assetItemView = new AssetItemView(aeDatabasePath, kaDatabasePath, aeDatabase);
+                    _assetItemView = new AssetItemView(aeDatabase);
                 }
             );
 
@@ -157,30 +156,6 @@ namespace UnityEditorAssetBrowser.Views
             }
         }
         #endregion
-
-        /// <summary>
-        /// GUIスタイルの初期化
-        /// </summary>
-        private void InitializeStyles()
-        {
-            if (titleStyle == null)
-            {
-                titleStyle = new GUIStyle(EditorStyles.boldLabel)
-                {
-                    fontSize = 14,
-                    margin = new RectOffset(4, 4, 4, 4),
-                };
-            }
-
-            if (boxStyle == null)
-            {
-                boxStyle = new GUIStyle(EditorStyles.helpBox)
-                {
-                    padding = new RectOffset(10, 10, 10, 10),
-                    margin = new RectOffset(0, 0, 5, 5),
-                };
-            }
-        }
 
         /// <summary>
         /// アバターコンテンツの表示
