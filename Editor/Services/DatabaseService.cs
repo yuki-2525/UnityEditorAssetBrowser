@@ -18,35 +18,53 @@ namespace UnityEditorAssetBrowser.Services
 {
     /// <summary>
     /// データベース操作を支援するサービスクラス
+    /// AvatarExplorerとKonoAssetのデータベースの読み込み、保存、更新を管理する
     /// </summary>
     public static class DatabaseService
     {
-        /// <summary>AEデータベースパスのEditorPrefsキー</summary>
+        /// <summary>
+        /// AvatarExplorerデータベースパスのEditorPrefsキー
+        /// </summary>
         private const string AE_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_AEDatabasePath";
 
-        /// <summary>KAデータベースパスのEditorPrefsキー</summary>
+        /// <summary>
+        /// KonoAssetデータベースパスのEditorPrefsキー
+        /// </summary>
         private const string KA_DATABASE_PATH_KEY = "UnityEditorAssetBrowser_KADatabasePath";
 
-        /// <summary>AEデータベースのパス</summary>
+        /// <summary>
+        /// AvatarExplorerデータベースのパス
+        /// </summary>
         private static string aeDatabasePath = "";
 
-        /// <summary>KAデータベースのパス</summary>
+        /// <summary>
+        /// KonoAssetデータベースのパス
+        /// </summary>
         private static string kaDatabasePath = "";
 
-        /// <summary>AvatarExplorerのデータベース</summary>
+        /// <summary>
+        /// AvatarExplorerのデータベース
+        /// </summary>
         private static AvatarExplorerDatabase? aeDatabase;
 
-        /// <summary>KonoAssetのアバターデータベース</summary>
+        /// <summary>
+        /// KonoAssetのアバターデータベース
+        /// </summary>
         private static KonoAssetAvatarsDatabase? kaAvatarsDatabase;
 
-        /// <summary>KonoAssetのウェアラブルデータベース</summary>
+        /// <summary>
+        /// KonoAssetのウェアラブルデータベース
+        /// </summary>
         private static KonoAssetWearablesDatabase? kaWearablesDatabase;
 
-        /// <summary>KonoAssetのワールドオブジェクトデータベース</summary>
+        /// <summary>
+        /// KonoAssetのワールドオブジェクトデータベース
+        /// </summary>
         private static KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase;
 
         /// <summary>
-        /// 設定の読み込み
+        /// データベースの設定を読み込む
+        /// 保存されたパスからデータベースを読み込み、更新する
         /// </summary>
         public static void LoadSettings()
         {
@@ -60,7 +78,8 @@ namespace UnityEditorAssetBrowser.Services
         }
 
         /// <summary>
-        /// 設定の保存
+        /// データベースの設定を保存する
+        /// 現在のパスをEditorPrefsに保存する
         /// </summary>
         public static void SaveSettings()
         {
@@ -69,7 +88,8 @@ namespace UnityEditorAssetBrowser.Services
         }
 
         /// <summary>
-        /// AEデータベースの読み込みと更新
+        /// AvatarExplorerデータベースを読み込み、更新する
+        /// パスが無効な場合はエラーメッセージを表示し、パスをリセットする
         /// </summary>
         public static void LoadAndUpdateAEDatabase()
         {
@@ -79,21 +99,17 @@ namespace UnityEditorAssetBrowser.Services
             aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
             if (aeDatabase == null)
             {
-                // エラーポップアップを表示
-                EditorUtility.DisplayDialog(
+                ShowErrorDialog(
                     "パスエラー",
-                    "入力したパスが誤っています\n\nAvatarExplorer-v1.0.x/Datas\nを指定してください",
-                    "OK"
+                    "入力したパスが誤っています\n\nAvatarExplorer-v1.0.x/Datas\nを指定してください"
                 );
-
-                // パスを空欄に戻す
-                aeDatabasePath = "";
-                SaveSettings();
+                ResetAEDatabasePath();
             }
         }
 
         /// <summary>
-        /// KAデータベースの読み込みと更新
+        /// KonoAssetデータベースを読み込み、更新する
+        /// パスが無効な場合はエラーメッセージを表示し、パスをリセットする
         /// </summary>
         public static void LoadAndUpdateKADatabase()
         {
@@ -103,16 +119,11 @@ namespace UnityEditorAssetBrowser.Services
             var metadataPath = Path.Combine(kaDatabasePath, "metadata");
             if (!Directory.Exists(metadataPath))
             {
-                // エラーポップアップを表示
-                EditorUtility.DisplayDialog(
+                ShowErrorDialog(
                     "パスエラー",
-                    "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください",
-                    "OK"
+                    "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください"
                 );
-
-                // パスを空欄に戻す
-                kaDatabasePath = "";
-                SaveSettings();
+                ResetKADatabasePath();
                 return;
             }
 
@@ -123,67 +134,80 @@ namespace UnityEditorAssetBrowser.Services
         }
 
         /// <summary>
-        /// AEデータベースパスを取得
+        /// エラーダイアログを表示する
         /// </summary>
-        public static string GetAEDatabasePath()
+        /// <param name="title">ダイアログのタイトル</param>
+        /// <param name="message">表示するメッセージ</param>
+        private static void ShowErrorDialog(string title, string message)
         {
-            return aeDatabasePath;
+            EditorUtility.DisplayDialog(title, message, "OK");
         }
 
         /// <summary>
-        /// KAデータベースパスを取得
+        /// AvatarExplorerデータベースのパスをリセットする
         /// </summary>
-        public static string GetKADatabasePath()
+        private static void ResetAEDatabasePath()
         {
-            return kaDatabasePath;
+            aeDatabasePath = "";
+            SaveSettings();
         }
 
         /// <summary>
-        /// AEデータベースパスを設定
+        /// KonoAssetデータベースのパスをリセットする
         /// </summary>
-        public static void SetAEDatabasePath(string path)
+        private static void ResetKADatabasePath()
         {
-            aeDatabasePath = path;
+            kaDatabasePath = "";
+            SaveSettings();
         }
 
         /// <summary>
-        /// KAデータベースパスを設定
+        /// AvatarExplorerデータベースのパスを取得する
         /// </summary>
-        public static void SetKADatabasePath(string path)
-        {
-            kaDatabasePath = path;
-        }
+        /// <returns>データベースのパス</returns>
+        public static string GetAEDatabasePath() => aeDatabasePath;
 
         /// <summary>
-        /// AEデータベースを取得
+        /// KonoAssetデータベースのパスを取得する
         /// </summary>
-        public static AvatarExplorerDatabase? GetAEDatabase()
-        {
-            return aeDatabase;
-        }
+        /// <returns>データベースのパス</returns>
+        public static string GetKADatabasePath() => kaDatabasePath;
 
         /// <summary>
-        /// KAアバターデータベースを取得
+        /// AvatarExplorerデータベースのパスを設定する
         /// </summary>
-        public static KonoAssetAvatarsDatabase? GetKAAvatarsDatabase()
-        {
-            return kaAvatarsDatabase;
-        }
+        /// <param name="path">設定するパス</param>
+        public static void SetAEDatabasePath(string path) => aeDatabasePath = path;
 
         /// <summary>
-        /// KAウェアラブルデータベースを取得
+        /// KonoAssetデータベースのパスを設定する
         /// </summary>
-        public static KonoAssetWearablesDatabase? GetKAWearablesDatabase()
-        {
-            return kaWearablesDatabase;
-        }
+        /// <param name="path">設定するパス</param>
+        public static void SetKADatabasePath(string path) => kaDatabasePath = path;
 
         /// <summary>
-        /// KAワールドオブジェクトデータベースを取得
+        /// AvatarExplorerデータベースを取得する
         /// </summary>
-        public static KonoAssetWorldObjectsDatabase? GetKAWorldObjectsDatabase()
-        {
-            return kaWorldObjectsDatabase;
-        }
+        /// <returns>データベース（存在しない場合はnull）</returns>
+        public static AvatarExplorerDatabase? GetAEDatabase() => aeDatabase;
+
+        /// <summary>
+        /// KonoAssetアバターデータベースを取得する
+        /// </summary>
+        /// <returns>データベース（存在しない場合はnull）</returns>
+        public static KonoAssetAvatarsDatabase? GetKAAvatarsDatabase() => kaAvatarsDatabase;
+
+        /// <summary>
+        /// KonoAssetウェアラブルデータベースを取得する
+        /// </summary>
+        /// <returns>データベース（存在しない場合はnull）</returns>
+        public static KonoAssetWearablesDatabase? GetKAWearablesDatabase() => kaWearablesDatabase;
+
+        /// <summary>
+        /// KonoAssetワールドオブジェクトデータベースを取得する
+        /// </summary>
+        /// <returns>データベース（存在しない場合はnull）</returns>
+        public static KonoAssetWorldObjectsDatabase? GetKAWorldObjectsDatabase() =>
+            kaWorldObjectsDatabase;
     }
 }

@@ -14,12 +14,19 @@ namespace UnityEditorAssetBrowser.Models
     #region Database Model
     /// <summary>
     /// AvatarExplorerのデータベースモデル
+    /// アセットアイテムのリストを管理する
     /// </summary>
     public class AvatarExplorerDatabase
     {
+        /// <summary>
+        /// アセットアイテムのリスト
+        /// </summary>
         [JsonProperty("Items")]
         public List<AvatarExplorerItem> Items { get; set; } = new List<AvatarExplorerItem>();
 
+        /// <summary>
+        /// デフォルトコンストラクタ
+        /// </summary>
         [JsonConstructor]
         public AvatarExplorerDatabase() { }
 
@@ -37,6 +44,7 @@ namespace UnityEditorAssetBrowser.Models
     #region Item Model
     /// <summary>
     /// AvatarExplorerのアイテムタイプ
+    /// アセットの種類を定義する
     /// </summary>
     public enum AvatarExplorerItemType
     {
@@ -98,64 +106,117 @@ namespace UnityEditorAssetBrowser.Models
 
     /// <summary>
     /// AvatarExplorerのアイテムモデル
+    /// アセットの詳細情報を管理する
     /// </summary>
     public class AvatarExplorerItem
     {
+        /// <summary>
+        /// アイテムのタイトル
+        /// </summary>
         [JsonProperty("Title")]
         public string Title { get; set; } = "";
 
+        /// <summary>
+        /// 作者名
+        /// </summary>
         [JsonProperty("AuthorName")]
         public string AuthorName { get; set; } = "";
 
+        /// <summary>
+        /// アイテムのメモ
+        /// </summary>
         [JsonProperty("ItemMemo")]
         public string ItemMemo { get; set; } = "";
 
+        /// <summary>
+        /// アイテムのパス
+        /// </summary>
         [JsonProperty("ItemPath")]
         public string ItemPath { get; set; } = "";
 
+        /// <summary>
+        /// 画像のパス
+        /// </summary>
         [JsonProperty("ImagePath")]
         public string ImagePath { get; set; } = "";
 
+        /// <summary>
+        /// マテリアルのパス
+        /// </summary>
         [JsonProperty("MaterialPath")]
         public string MaterialPath { get; set; } = "";
 
+        /// <summary>
+        /// 対応アバターのリスト
+        /// </summary>
         [JsonProperty("SupportedAvatar")]
         public string[] SupportedAvatar { get; set; } = Array.Empty<string>();
 
+        /// <summary>
+        /// BOOTHのID
+        /// </summary>
         [JsonProperty("BoothId")]
         public int BoothId { get; set; } = -1;
 
+        /// <summary>
+        /// アイテムのタイプ
+        /// </summary>
         [JsonProperty("Type")]
         public string Type { get; set; } = "";
 
+        /// <summary>
+        /// カスタムカテゴリー
+        /// </summary>
         [JsonProperty("CustomCategory")]
         public string CustomCategory { get; set; } = "";
 
+        /// <summary>
+        /// 作者のID
+        /// </summary>
         [JsonProperty("AuthorId")]
         public string AuthorId { get; set; } = "";
 
+        /// <summary>
+        /// サムネイル画像のURL
+        /// </summary>
         [JsonProperty("ThumbnailUrl")]
         public string ThumbnailUrl { get; set; } = "";
 
+        /// <summary>
+        /// 作成日時
+        /// </summary>
         [JsonProperty("CreatedDate")]
         public DateTime CreatedDate { get; set; } = DateTime.MinValue;
 
+        /// <summary>
+        /// アイテムのカテゴリー
+        /// </summary>
         [JsonIgnore]
         public string Category => GetAECategoryName();
 
+        /// <summary>
+        /// 対応アバターのリスト（エイリアス）
+        /// </summary>
         [JsonIgnore]
         public string[] SupportedAvatars => SupportedAvatar;
 
+        /// <summary>
+        /// タグのリスト（現在は空配列）
+        /// </summary>
         [JsonIgnore]
         public string[] Tags => Array.Empty<string>();
 
+        /// <summary>
+        /// アイテムのメモ（エイリアス）
+        /// </summary>
         [JsonIgnore]
         public string Memo => ItemMemo;
 
         /// <summary>
         /// AEアイテムのカテゴリー名を取得
+        /// Typeの値に基づいてカテゴリー名を決定する
         /// </summary>
-        /// <returns>カテゴリー名</returns>
+        /// <returns>アイテムのカテゴリー名</returns>
         public string GetAECategoryName()
         {
             // Typeが数値として保存されている場合の処理
@@ -177,8 +238,8 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// タイプに基づいてカテゴリー名を取得
         /// </summary>
-        /// <param name="itemType">アイテムタイプ</param>
-        /// <returns>カテゴリー名</returns>
+        /// <param name="itemType">アイテムのタイプ</param>
+        /// <returns>対応するカテゴリー名</returns>
         private string GetCategoryNameByType(AvatarExplorerItemType itemType)
         {
             return itemType switch

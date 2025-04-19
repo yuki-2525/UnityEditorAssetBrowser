@@ -11,7 +11,7 @@ namespace UnityEditorAssetBrowser.ViewModels
 {
     /// <summary>
     /// ページネーションのビューモデル
-    /// UIとPaginationInfoモデルの間の橋渡し役として機能する
+    /// UIとPaginationInfoモデルの間の橋渡し役として機能し、ページネーションの制御と表示を管理する
     /// </summary>
     public class PaginationViewModel
     {
@@ -33,7 +33,7 @@ namespace UnityEditorAssetBrowser.ViewModels
         public int CurrentPage => _paginationInfo.CurrentPage;
 
         /// <summary>
-        /// 選択中のタブ
+        /// 選択中のタブ（0: アバター, 1: アイテム, 2: ワールドオブジェクト）
         /// </summary>
         public int SelectedTab
         {
@@ -54,59 +54,43 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// 総ページ数を取得
         /// </summary>
         /// <param name="items">アイテムリスト</param>
-        /// <returns>総ページ数</returns>
-        public int GetTotalPages(List<object> items)
-        {
-            return _paginationInfo.GetTotalPages(items);
-        }
+        /// <returns>総ページ数（アイテム数が0の場合は1）</returns>
+        public int GetTotalPages(List<object> items) => _paginationInfo.GetTotalPages(items);
 
         /// <summary>
         /// 現在のページのアイテムを取得
         /// </summary>
         /// <param name="items">アイテムリスト</param>
-        /// <returns>現在のページのアイテム</returns>
-        public IEnumerable<object> GetCurrentPageItems(List<object> items)
-        {
-            return _paginationInfo.GetCurrentPageItems(items);
-        }
+        /// <returns>現在のページに表示するアイテム</returns>
+        public IEnumerable<object> GetCurrentPageItems(List<object> items) =>
+            _paginationInfo.GetCurrentPageItems(items);
 
         /// <summary>
-        /// ページをリセット
+        /// ページをリセット（1ページ目に戻す）
         /// </summary>
-        public void ResetPage()
-        {
-            _paginationInfo.ResetPage();
-        }
+        public void ResetPage() => _paginationInfo.ResetPage();
 
         /// <summary>
         /// 次のページに移動
         /// </summary>
         /// <param name="totalPages">総ページ数</param>
-        /// <returns>移動が成功したかどうか</returns>
-        public bool MoveToNextPage(int totalPages)
-        {
-            return _paginationInfo.MoveToNextPage(totalPages);
-        }
+        /// <returns>移動が成功したかどうか（現在のページが最後のページの場合はfalse）</returns>
+        public bool MoveToNextPage(int totalPages) => _paginationInfo.MoveToNextPage(totalPages);
 
         /// <summary>
         /// 前のページに移動
         /// </summary>
-        /// <returns>移動が成功したかどうか</returns>
-        public bool MoveToPreviousPage()
-        {
-            return _paginationInfo.MoveToPreviousPage();
-        }
+        /// <returns>移動が成功したかどうか（現在のページが1ページ目の場合はfalse）</returns>
+        public bool MoveToPreviousPage() => _paginationInfo.MoveToPreviousPage();
 
         /// <summary>
         /// 指定したページに移動
         /// </summary>
-        /// <param name="page">移動先のページ番号</param>
+        /// <param name="page">移動先のページ番号（1以上）</param>
         /// <param name="totalPages">総ページ数</param>
-        /// <returns>移動が成功したかどうか</returns>
-        public bool MoveToPage(int page, int totalPages)
-        {
-            return _paginationInfo.MoveToPage(page, totalPages);
-        }
+        /// <returns>移動が成功したかどうか（ページ番号が無効な場合はfalse）</returns>
+        public bool MoveToPage(int page, int totalPages) =>
+            _paginationInfo.MoveToPage(page, totalPages);
 
         /// <summary>
         /// 現在のタブのアイテム数を取得
@@ -114,20 +98,13 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <param name="getFilteredAvatars">フィルターされたアバターを取得する関数</param>
         /// <param name="getFilteredItems">フィルターされたアイテムを取得する関数</param>
         /// <param name="getFilteredWorldObjects">フィルターされたワールドオブジェクトを取得する関数</param>
-        /// <returns>アイテム数</returns>
+        /// <returns>現在のタブのアイテム数</returns>
         public int GetCurrentTabItemCount(
             Func<List<object>> getFilteredAvatars,
             Func<List<object>> getFilteredItems,
             Func<List<object>> getFilteredWorldObjects
-        )
-        {
-            var items = GetCurrentTabItems(
-                getFilteredAvatars,
-                getFilteredItems,
-                getFilteredWorldObjects
-            );
-            return items.Count;
-        }
+        ) =>
+            GetCurrentTabItems(getFilteredAvatars, getFilteredItems, getFilteredWorldObjects).Count;
 
         /// <summary>
         /// 現在のタブのアイテムを取得
@@ -140,15 +117,13 @@ namespace UnityEditorAssetBrowser.ViewModels
             Func<List<object>> getFilteredAvatars,
             Func<List<object>> getFilteredItems,
             Func<List<object>> getFilteredWorldObjects
-        )
-        {
-            return _paginationInfo.SelectedTab switch
+        ) =>
+            _paginationInfo.SelectedTab switch
             {
                 0 => getFilteredAvatars(),
                 1 => getFilteredItems(),
                 2 => getFilteredWorldObjects(),
                 _ => new List<object>(),
             };
-        }
     }
 }

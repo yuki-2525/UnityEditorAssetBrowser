@@ -5,11 +5,19 @@ using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Helper
 {
+    /// <summary>
+    /// Unity EditorのGUIスタイルを管理するクラス
+    /// 共通で使用するスタイルをキャッシュし、効率的に提供する
+    /// </summary>
     public static class GUIStyleManager
     {
         private static GUIStyle? _titleStyle;
         private static GUIStyle? _boxStyle;
 
+        /// <summary>
+        /// タイトル用のスタイル
+        /// 太字で14ptのフォントサイズを使用し、適切なマージンを設定
+        /// </summary>
         public static GUIStyle TitleStyle
         {
             get
@@ -26,6 +34,10 @@ namespace UnityEditorAssetBrowser.Helper
             }
         }
 
+        /// <summary>
+        /// ボックス用のスタイル
+        /// ヘルプボックスをベースに、適切なパディングとマージンを設定
+        /// </summary>
         public static GUIStyle BoxStyle
         {
             get

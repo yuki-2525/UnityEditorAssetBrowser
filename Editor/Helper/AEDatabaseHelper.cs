@@ -16,14 +16,15 @@ namespace UnityEditorAssetBrowser.Helper
 {
     /// <summary>
     /// AEデータベース操作を支援するヘルパークラス
+    /// AvatarExplorerのデータベースファイルの読み込み、保存、変換を行う
     /// </summary>
     public static class AEDatabaseHelper
     {
         /// <summary>
         /// AvatarExplorerのデータベースファイルを読み込む
         /// </summary>
-        /// <param name="path">データベースのパス</param>
-        /// <returns>読み込んだデータベース</returns>
+        /// <param name="path">データベースのパス（ディレクトリまたはファイルパス）</param>
+        /// <returns>読み込んだデータベース。読み込みに失敗した場合はnull</returns>
         public static AvatarExplorerDatabase? LoadAEDatabaseFile(string path)
         {
             try
@@ -107,8 +108,9 @@ namespace UnityEditorAssetBrowser.Helper
         /// <summary>
         /// AEデータベースを保存する
         /// </summary>
-        /// <param name="path">保存先のパス</param>
+        /// <param name="path">保存先のディレクトリパス</param>
         /// <param name="data">保存するデータ</param>
+        /// <exception cref="Exception">保存に失敗した場合にスローされる</exception>
         public static void SaveAEDatabase(string path, AvatarExplorerItem[] data)
         {
             try

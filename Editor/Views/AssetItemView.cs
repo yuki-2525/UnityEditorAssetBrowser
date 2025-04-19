@@ -12,12 +12,25 @@ using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Views
 {
+    /// <summary>
+    /// アセットアイテムの表示を管理するビュー
+    /// AvatarExplorerとKonoAssetのアイテムを統一的に表示する
+    /// </summary>
     public class AssetItemView
     {
+        /// <summary>AvatarExplorerデータベース</summary>
         private readonly AvatarExplorerDatabase? aeDatabase;
-        private Dictionary<string, bool> memoFoldouts = new Dictionary<string, bool>();
-        private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
 
+        /// <summary>メモのフォールドアウト状態</summary>
+        private readonly Dictionary<string, bool> memoFoldouts = new();
+
+        /// <summary>UnityPackageのフォールドアウト状態</summary>
+        private readonly Dictionary<string, bool> unityPackageFoldouts = new();
+
+        /// <summary>
+        /// コンストラクタ
+        /// </summary>
+        /// <param name="aeDatabase">AvatarExplorerデータベース</param>
         public AssetItemView(AvatarExplorerDatabase? aeDatabase)
         {
             this.aeDatabase = aeDatabase;
@@ -215,132 +228,133 @@ namespace UnityEditorAssetBrowser.Views
             // 作者名
             GUILayout.Label($"作者: {author}");
 
-            // カテゴリ（showCategoryがtrueの場合のみ表示）
+            // カテゴリ（表示する場合）
             if (showCategory && !string.IsNullOrEmpty(category))
             {
-                if (aeDatabase != null)
-                {
-                    var item = aeDatabase.Items.FirstOrDefault(i => i.Title == title);
-                    if (item != null)
-                    {
-                        GUILayout.Label($"カテゴリ: {item.GetAECategoryName()}");
-                    }
-                    else
-                    {
-                        GUILayout.Label($"カテゴリ: {category}");
-                    }
-                }
-                else
-                {
-                    GUILayout.Label($"カテゴリ: {category}");
-                }
+                DrawCategory(title, category);
             }
 
-            // 対応アバター（showSupportedAvatarsがtrueの場合のみ表示）
+            // 対応アバター（表示する場合）
             if (showSupportedAvatars && supportedAvatars != null && supportedAvatars.Length > 0)
             {
-                string supportedAvatarsText;
-
-                // AEのアイテムの場合、パスからアバター名を取得
-                if (aeDatabase != null)
-                {
-                    var supportedAvatarNames = new List<string>();
-                    foreach (var avatarPath in supportedAvatars)
-                    {
-                        var avatarItem = aeDatabase.Items.FirstOrDefault(x =>
-                            x.ItemPath == avatarPath
-                        );
-                        if (avatarItem != null)
-                        {
-                            supportedAvatarNames.Add(avatarItem.Title);
-                        }
-                        else
-                        {
-                            // パスが見つからない場合はパスをそのまま表示
-                            supportedAvatarNames.Add(Path.GetFileName(avatarPath));
-                        }
-                    }
-                    supportedAvatarsText =
-                        "対応アバター: " + string.Join(", ", supportedAvatarNames);
-                }
-                else
-                {
-                    // KAのアイテムの場合はそのまま表示
-                    supportedAvatarsText = "対応アバター: " + string.Join(", ", supportedAvatars);
-                }
-
-                GUILayout.Label(supportedAvatarsText);
+                DrawSupportedAvatars(supportedAvatars);
             }
 
-            // タグ（KAのみ）
+            // タグ
             if (tags != null && tags.Length > 0)
             {
-                string tagsText = "タグ: " + string.Join(", ", tags);
-                GUILayout.Label(tagsText);
+                GUILayout.Label($"タグ: {string.Join(", ", tags)}");
             }
 
-            // メモ（トグルで表示）
+            // メモ
             if (!string.IsNullOrEmpty(memo))
             {
-                // メモのフォールドアウト状態を管理するためのキー
-                string memoKey = $"{title}_memo";
-                if (!memoFoldouts.ContainsKey(memoKey))
-                {
-                    memoFoldouts[memoKey] = false;
-                }
-
-                // 枠の開始位置を記録
-                var startRect = EditorGUILayout.GetControlRect(false, 0);
-                var startY = startRect.y;
-
-                // 行全体をクリック可能にするためのボックスを作成
-                var boxRect = EditorGUILayout.GetControlRect(
-                    false,
-                    EditorGUIUtility.singleLineHeight
-                );
-
-                // フォールドアウトの状態を更新
-                if (
-                    Event.current.type == EventType.MouseDown
-                    && boxRect.Contains(Event.current.mousePosition)
-                )
-                {
-                    memoFoldouts[memoKey] = !memoFoldouts[memoKey];
-                    GUI.changed = true;
-                    Event.current.Use();
-                }
-
-                // ラベルを描画（▼を追加）
-                string toggleText = memoFoldouts[memoKey] ? "▼メモ" : "▶メモ";
-                EditorGUI.LabelField(boxRect, toggleText);
-
-                if (memoFoldouts[memoKey])
-                {
-                    EditorGUI.indentLevel++;
-                    EditorGUILayout.LabelField(memo, EditorStyles.wordWrappedLabel);
-                    EditorGUI.indentLevel--;
-                }
-
-                // 枠の終了位置を取得
-                var endRect = GUILayoutUtility.GetLastRect();
-                var endY = endRect.y + endRect.height;
-
-                // 枠を描画
-                var frameRect = new Rect(
-                    startRect.x,
-                    startY,
-                    EditorGUIUtility.currentViewWidth - 20,
-                    endY - startY + 10
-                );
-                EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
-                GUI.Box(frameRect, "", EditorStyles.helpBox);
+                DrawMemo(title, memo);
             }
 
-            // 開くボタンとアイテムデータとの間に一行間を開ける
             EditorGUILayout.Space(5);
             DrawOpenButton(itemPath);
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// カテゴリの描画
+        /// </summary>
+        /// <param name="title">タイトル</param>
+        /// <param name="category">カテゴリ</param>
+        private void DrawCategory(string title, string? category)
+        {
+            if (aeDatabase != null)
+            {
+                var item = aeDatabase.Items.FirstOrDefault(i => i.Title == title);
+                GUILayout.Label(
+                    item != null ? $"カテゴリ: {item.GetAECategoryName()}" : $"カテゴリ: {category}"
+                );
+            }
+            else
+            {
+                GUILayout.Label($"カテゴリ: {category}");
+            }
+        }
+
+        /// <summary>
+        /// 対応アバターの描画
+        /// </summary>
+        /// <param name="supportedAvatars">対応アバターのパス配列</param>
+        private void DrawSupportedAvatars(string[] supportedAvatars)
+        {
+            string supportedAvatarsText =
+                aeDatabase != null
+                    ? GetAESupportedAvatarsText(supportedAvatars)
+                    : $"対応アバター: {string.Join(", ", supportedAvatars)}";
+
+            GUILayout.Label(supportedAvatarsText);
+        }
+
+        /// <summary>
+        /// AEの対応アバターのテキストを取得
+        /// </summary>
+        /// <param name="supportedAvatars">対応アバターのパス配列</param>
+        /// <returns>対応アバターの表示テキスト</returns>
+        private string GetAESupportedAvatarsText(string[] supportedAvatars)
+        {
+            var supportedAvatarNames = supportedAvatars.Select(avatarPath =>
+            {
+                var avatarItem = aeDatabase?.Items.FirstOrDefault(x => x.ItemPath == avatarPath);
+                return avatarItem?.Title ?? Path.GetFileName(avatarPath);
+            });
+
+            return "対応アバター: " + string.Join(", ", supportedAvatarNames);
+        }
+
+        /// <summary>
+        /// メモの描画
+        /// </summary>
+        /// <param name="title">タイトル</param>
+        /// <param name="memo">メモ</param>
+        private void DrawMemo(string title, string? memo)
+        {
+            string memoKey = $"{title}_memo";
+            if (!memoFoldouts.ContainsKey(memoKey))
+            {
+                memoFoldouts[memoKey] = false;
+            }
+
+            var startRect = EditorGUILayout.GetControlRect(false, 0);
+            var startY = startRect.y;
+            var boxRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
+
+            if (
+                Event.current.type == EventType.MouseDown
+                && boxRect.Contains(Event.current.mousePosition)
+            )
+            {
+                memoFoldouts[memoKey] = !memoFoldouts[memoKey];
+                GUI.changed = true;
+                Event.current.Use();
+            }
+
+            string toggleText = memoFoldouts[memoKey] ? "▼メモ" : "▶メモ";
+            EditorGUI.LabelField(boxRect, toggleText);
+
+            if (memoFoldouts[memoKey])
+            {
+                EditorGUI.indentLevel++;
+                EditorGUILayout.LabelField(memo ?? string.Empty, EditorStyles.wordWrappedLabel);
+                EditorGUI.indentLevel--;
+            }
+
+            var endRect = GUILayoutUtility.GetLastRect();
+            var endY = endRect.y + endRect.height;
+            var frameRect = new Rect(
+                startRect.x,
+                startY,
+                EditorGUIUtility.currentViewWidth - 20,
+                endY - startY + 10
+            );
+            EditorGUI.DrawRect(frameRect, new Color(0.5f, 0.5f, 0.5f, 0.2f));
+            GUI.Box(frameRect, "", EditorStyles.helpBox);
         }
 
         /// <summary>
@@ -527,6 +541,24 @@ namespace UnityEditorAssetBrowser.Views
                 AssetDatabase.ImportPackage(package, true);
             }
             GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// アイテムヘッダー情報を保持するクラス
+        /// </summary>
+        private class ItemHeaderInfo
+        {
+            public string Title { get; set; } = string.Empty;
+            public string Author { get; set; } = string.Empty;
+            public string ImagePath { get; set; } = string.Empty;
+            public string ItemPath { get; set; } = string.Empty;
+            public DateTime? CreatedDate { get; set; }
+            public string? Category { get; set; }
+            public string[]? SupportedAvatars { get; set; }
+            public string[]? Tags { get; set; }
+            public string? Memo { get; set; }
+            public bool ShowCategory { get; set; } = true;
+            public bool ShowSupportedAvatars { get; set; }
         }
     }
 }

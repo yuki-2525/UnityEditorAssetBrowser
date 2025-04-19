@@ -13,55 +13,75 @@ using UnityEngine;
 namespace UnityEditorAssetBrowser.Helper
 {
     /// <summary>
-    /// KonoAssetデータベースの読み込みを支援するヘルパークラス
+    /// KonoAssetデータベースの読み込みと保存を支援するヘルパークラス
+    /// アバター、ウェアラブル、ワールドオブジェクトのデータベースを管理する
     /// </summary>
     public class KADatabaseHelper
     {
         /// <summary>
-        /// データベース読み込み結果
+        /// データベース読み込み結果を保持するクラス
+        /// 各データベースの読み込み状態を管理する
         /// </summary>
         public class DatabaseLoadResult
         {
+            /// <summary>
+            /// アバターデータベース
+            /// </summary>
             public KonoAssetAvatarsDatabase? avatarsDatabase;
+
+            /// <summary>
+            /// ウェアラブルデータベース
+            /// </summary>
             public KonoAssetWearablesDatabase? wearablesDatabase;
+
+            /// <summary>
+            /// ワールドオブジェクトデータベース
+            /// </summary>
             public KonoAssetWorldObjectsDatabase? worldObjectsDatabase;
         }
 
         /// <summary>
         /// KonoAssetのデータベースを読み込む
+        /// 指定されたパスから各データベースファイルを読み込み、結果を返す
         /// </summary>
-        /// <param name="metadataPath">メタデータのパス</param>
-        /// <returns>読み込んだデータベース</returns>
+        /// <param name="metadataPath">メタデータが格納されているディレクトリのパス</param>
+        /// <returns>読み込んだデータベースの結果</returns>
         public static DatabaseLoadResult LoadKADatabaseFiles(string metadataPath)
         {
             var result = new DatabaseLoadResult();
 
-            // avatars.jsonの読み込み
-            var avatarsPath = Path.Combine(metadataPath, "avatars.json");
-            if (File.Exists(avatarsPath))
+            try
             {
-                var json = File.ReadAllText(avatarsPath);
-                result.avatarsDatabase = JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(
-                    json
-                );
-            }
+                // avatars.jsonの読み込み
+                var avatarsPath = Path.Combine(metadataPath, "avatars.json");
+                if (File.Exists(avatarsPath))
+                {
+                    var json = File.ReadAllText(avatarsPath);
+                    result.avatarsDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(json);
+                }
 
-            // avatarWearables.jsonの読み込み
-            var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
-            if (File.Exists(wearablesPath))
-            {
-                var json = File.ReadAllText(wearablesPath);
-                result.wearablesDatabase =
-                    JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(json);
-            }
+                // avatarWearables.jsonの読み込み
+                var wearablesPath = Path.Combine(metadataPath, "avatarWearables.json");
+                if (File.Exists(wearablesPath))
+                {
+                    var json = File.ReadAllText(wearablesPath);
+                    result.wearablesDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(json);
+                }
 
-            // worldObjects.jsonの読み込み
-            var worldObjectsPath = Path.Combine(metadataPath, "worldObjects.json");
-            if (File.Exists(worldObjectsPath))
+                // worldObjects.jsonの読み込み
+                var worldObjectsPath = Path.Combine(metadataPath, "worldObjects.json");
+                if (File.Exists(worldObjectsPath))
+                {
+                    var json = File.ReadAllText(worldObjectsPath);
+                    result.worldObjectsDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(json);
+                }
+            }
+            catch (Exception ex)
             {
-                var json = File.ReadAllText(worldObjectsPath);
-                result.worldObjectsDatabase =
-                    JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(json);
+                Debug.LogError($"Failed to load KA database: {ex.Message}");
             }
 
             return result;
@@ -69,8 +89,9 @@ namespace UnityEditorAssetBrowser.Helper
 
         /// <summary>
         /// KAデータベースを保存する
+        /// 指定されたパスにデータベースをJSON形式で保存する
         /// </summary>
-        /// <param name="path">保存先のパス</param>
+        /// <param name="path">保存先のディレクトリパス</param>
         /// <param name="database">保存するデータベース</param>
         public static void SaveKADatabase(string path, KonoAssetDatabase database)
         {
@@ -88,7 +109,7 @@ namespace UnityEditorAssetBrowser.Helper
             }
             catch (Exception ex)
             {
-                Debug.LogWarning($"Error saving KA database: {ex.Message}");
+                Debug.LogError($"Error saving KA database: {ex.Message}");
             }
         }
     }

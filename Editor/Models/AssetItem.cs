@@ -3,19 +3,31 @@
 #nullable enable
 
 using System;
+using UnityEditorAssetBrowser.Helper;
 
 namespace UnityEditorAssetBrowser.Models
 {
+    /// <summary>
+    /// アセットアイテムの情報を管理するクラス
+    /// 様々な形式のアセットアイテムから共通の情報を取得する機能を提供する
+    /// </summary>
     public class AssetItem
     {
+        /// <summary>
+        /// ワールドカテゴリーの日本語名
+        /// </summary>
         private const string WORLD_CATEGORY_JP = "ワールド";
+
+        /// <summary>
+        /// ワールドカテゴリーの英語名
+        /// </summary>
         private const string WORLD_CATEGORY_EN = "world";
 
         /// <summary>
         /// アイテムのカテゴリー名を取得
         /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>カテゴリー名</returns>
+        /// <param name="item">カテゴリー名を取得するアイテム</param>
+        /// <returns>アイテムのカテゴリー名。取得できない場合は空文字列</returns>
         public string GetItemCategoryName(object item)
         {
             if (item is AvatarExplorerItem aeItem)
@@ -46,8 +58,8 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// アイテムのタイトルを取得
         /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>タイトル</returns>
+        /// <param name="item">タイトルを取得するアイテム</param>
+        /// <returns>アイテムのタイトル。取得できない場合は空文字列</returns>
         public string GetTitle(object item)
         {
             if (item is AvatarExplorerItem aeItem)
@@ -72,8 +84,8 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// アイテムの作者名を取得
         /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作者名</returns>
+        /// <param name="item">作者名を取得するアイテム</param>
+        /// <returns>アイテムの作者名。取得できない場合は空文字列</returns>
         public string GetAuthor(object item)
         {
             if (item is AvatarExplorerItem aeItem)
@@ -98,8 +110,8 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// アイテムの作成日を取得
         /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>作成日（UnixTimeMilliseconds）</returns>
+        /// <param name="item">作成日を取得するアイテム</param>
+        /// <returns>アイテムの作成日（UnixTimeMilliseconds）。取得できない場合は0</returns>
         public long GetCreatedDate(object item)
         {
             if (item is AvatarExplorerItem aeItem)
@@ -108,7 +120,7 @@ namespace UnityEditorAssetBrowser.Models
                     return 0;
 
                 // 日付文字列をUTCのDateTimeに変換
-                var utcDateTime = GetDate(aeItem.CreatedDate.ToString());
+                var utcDateTime = CustomDateTimeConverter.GetDate(aeItem.CreatedDate.ToString());
 
                 // UTCのDateTimeをUnixTimeMillisecondsに変換
                 return new DateTimeOffset(utcDateTime, TimeSpan.Zero).ToUnixTimeMilliseconds();
@@ -129,24 +141,10 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 日付文字列をDateTimeに変換
-        /// </summary>
-        /// <param name="dateString">日付文字列</param>
-        /// <returns>DateTime</returns>
-        private DateTime GetDate(string dateString)
-        {
-            if (DateTime.TryParse(dateString, out DateTime result))
-            {
-                return result;
-            }
-            return DateTime.Now;
-        }
-
-        /// <summary>
         /// アイテムのメモを取得
         /// </summary>
-        /// <param name="item">アイテム</param>
-        /// <returns>メモ</returns>
+        /// <param name="item">メモを取得するアイテム</param>
+        /// <returns>アイテムのメモ。取得できない場合は空文字列</returns>
         public string GetMemo(object item)
         {
             if (item is AvatarExplorerItem aeItem)
@@ -171,8 +169,8 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// カテゴリーがワールド関連かどうかを判定
         /// </summary>
-        /// <param name="category">カテゴリー名</param>
-        /// <returns>ワールド関連の場合true</returns>
+        /// <param name="category">判定するカテゴリー名</param>
+        /// <returns>ワールド関連のカテゴリーの場合はtrue、それ以外はfalse</returns>
         public bool IsWorldCategory(string category)
         {
             return category.Contains(WORLD_CATEGORY_JP, StringComparison.OrdinalIgnoreCase)

@@ -11,22 +11,30 @@ namespace UnityEditorAssetBrowser.Models
 {
     /// <summary>
     /// ページネーション情報を管理するクラス
+    /// アイテムの表示ページ管理、ページ移動、アイテムの取得機能を提供する
     /// </summary>
     public class PaginationInfo
     {
-        /// <summary>1ページあたりのアイテム表示数</summary>
+        /// <summary>
+        /// 1ページあたりのデフォルトアイテム表示数
+        /// </summary>
         public const int ITEMS_PER_PAGE = 10;
 
-        /// <summary>現在のページ番号</summary>
+        /// <summary>
+        /// 現在のページ番号（0から開始）
+        /// </summary>
         public int CurrentPage { get; private set; } = 0;
 
-        /// <summary>選択中のタブ</summary>
+        /// <summary>
+        /// 選択中のタブ番号（0から開始）
+        /// </summary>
         public int SelectedTab { get; set; } = 0;
 
         private int _itemsPerPage = ITEMS_PER_PAGE;
 
         /// <summary>
         /// 1ページあたりのアイテム数
+        /// 最小値は1に制限される
         /// </summary>
         public int ItemsPerPage
         {
@@ -35,10 +43,10 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 総ページ数を取得
+        /// 総ページ数を計算
         /// </summary>
-        /// <param name="items">アイテムリスト</param>
-        /// <returns>総ページ数</returns>
+        /// <param name="items">全アイテムのリスト</param>
+        /// <returns>計算された総ページ数（最小値は1）</returns>
         public int GetTotalPages(List<object> items)
         {
             int totalItems = items.Count;
@@ -46,10 +54,10 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 現在のページのアイテムを取得
+        /// 現在のページに表示するアイテムを取得
         /// </summary>
-        /// <param name="items">アイテムリスト</param>
-        /// <returns>現在のページのアイテム</returns>
+        /// <param name="items">全アイテムのリスト</param>
+        /// <returns>現在のページに表示するアイテムの列挙</returns>
         public IEnumerable<object> GetCurrentPageItems(List<object> items)
         {
             int startIndex = CurrentPage * ItemsPerPage;
@@ -58,7 +66,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// ページをリセット
+        /// ページ番号を0にリセット
         /// </summary>
         public void ResetPage()
         {
@@ -69,7 +77,7 @@ namespace UnityEditorAssetBrowser.Models
         /// 次のページに移動
         /// </summary>
         /// <param name="totalPages">総ページ数</param>
-        /// <returns>移動が成功したかどうか</returns>
+        /// <returns>移動が成功した場合はtrue、失敗した場合はfalse</returns>
         public bool MoveToNextPage(int totalPages)
         {
             if (CurrentPage < totalPages - 1)
@@ -83,7 +91,7 @@ namespace UnityEditorAssetBrowser.Models
         /// <summary>
         /// 前のページに移動
         /// </summary>
-        /// <returns>移動が成功したかどうか</returns>
+        /// <returns>移動が成功した場合はtrue、失敗した場合はfalse</returns>
         public bool MoveToPreviousPage()
         {
             if (CurrentPage > 0)
@@ -95,11 +103,11 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 指定したページに移動
+        /// 指定したページ番号に移動
         /// </summary>
-        /// <param name="page">移動先のページ番号</param>
+        /// <param name="page">移動先のページ番号（0から開始）</param>
         /// <param name="totalPages">総ページ数</param>
-        /// <returns>移動が成功したかどうか</returns>
+        /// <returns>移動が成功した場合はtrue、失敗した場合はfalse</returns>
         public bool MoveToPage(int page, int totalPages)
         {
             if (page >= 0 && page < totalPages)

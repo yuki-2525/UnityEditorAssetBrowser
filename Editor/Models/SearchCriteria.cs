@@ -10,6 +10,7 @@ namespace UnityEditorAssetBrowser.Models
 {
     /// <summary>
     /// 検索条件を管理するクラス
+    /// 基本検索、詳細検索、ソート、フィルター、ページネーションの機能を提供する
     /// </summary>
     public class SearchCriteria
     {
@@ -39,6 +40,7 @@ namespace UnityEditorAssetBrowser.Models
 
         /// <summary>
         /// 基本検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string SearchQuery
         {
@@ -47,7 +49,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 詳細検索を表示するかどうか
+        /// 詳細検索パネルの表示状態
         /// </summary>
         public bool ShowAdvancedSearch
         {
@@ -56,7 +58,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// タイトル検索
+        /// タイトル検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string TitleSearch
         {
@@ -65,7 +68,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 作者名検索
+        /// 作者名検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string AuthorSearch
         {
@@ -74,7 +78,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// カテゴリ検索
+        /// カテゴリ検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string CategorySearch
         {
@@ -83,7 +88,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 対応アバター検索
+        /// 対応アバター検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string SupportedAvatarsSearch
         {
@@ -92,7 +98,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// タグ検索
+        /// タグ検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string TagsSearch
         {
@@ -101,7 +108,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// メモ検索
+        /// メモ検索クエリ
+        /// スペース区切りで複数キーワードを指定可能
         /// </summary>
         public string MemoSearch
         {
@@ -110,7 +118,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// ソート方法
+        /// アイテムのソート方法
         /// </summary>
         public SortMethod SortMethod
         {
@@ -119,7 +127,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// アバターを表示するかどうか
+        /// アバターアイテムの表示/非表示
         /// </summary>
         public bool ShowAvatars
         {
@@ -128,7 +136,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// ウェアラブルを表示するかどうか
+        /// ウェアラブルアイテムの表示/非表示
         /// </summary>
         public bool ShowWearables
         {
@@ -137,7 +145,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// ワールドオブジェクトを表示するかどうか
+        /// ワールドオブジェクトアイテムの表示/非表示
         /// </summary>
         public bool ShowWorldObjects
         {
@@ -146,7 +154,7 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 現在のページ
+        /// 現在のページ番号（1から開始）
         /// </summary>
         public int CurrentPage
         {
@@ -155,7 +163,8 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 1ページあたりのアイテム数
+        /// 1ページあたりのアイテム表示数
+        /// 最小値は1に制限される
         /// </summary>
         public int ItemsPerPage
         {
@@ -164,96 +173,72 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 基本検索のキーワードを取得する
+        /// 検索クエリをキーワード配列に分割
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetKeywords()
+        /// <param name="query">分割する検索クエリ</param>
+        /// <returns>分割されたキーワード配列</returns>
+        private string[] SplitKeywords(string query)
         {
-            return SearchQuery.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
+            return query.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
         }
 
         /// <summary>
-        /// タイトル検索のキーワードを取得する
+        /// 基本検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetTitleKeywords()
-        {
-            return TitleSearch.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetKeywords() => SplitKeywords(SearchQuery);
 
         /// <summary>
-        /// 作者名検索のキーワードを取得する
+        /// タイトル検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetAuthorKeywords()
-        {
-            return AuthorSearch.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetTitleKeywords() => SplitKeywords(TitleSearch);
 
         /// <summary>
-        /// カテゴリ検索のキーワードを取得する
+        /// 作者名検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetCategoryKeywords()
-        {
-            return CategorySearch.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetAuthorKeywords() => SplitKeywords(AuthorSearch);
 
         /// <summary>
-        /// 対応アバター検索のキーワードを取得する
+        /// カテゴリ検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetSupportedAvatarsKeywords()
-        {
-            return SupportedAvatarsSearch.Split(
-                new[] { ' ', '　' },
-                StringSplitOptions.RemoveEmptyEntries
-            );
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetCategoryKeywords() => SplitKeywords(CategorySearch);
 
         /// <summary>
-        /// タグ検索のキーワードを取得する
+        /// 対応アバター検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetTagsKeywords()
-        {
-            return TagsSearch.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetSupportedAvatarsKeywords() => SplitKeywords(SupportedAvatarsSearch);
 
         /// <summary>
-        /// メモ検索のキーワードを取得する
+        /// タグ検索のキーワードを取得
         /// </summary>
-        /// <returns>キーワードの配列</returns>
-        public string[] GetMemoKeywords()
-        {
-            return MemoSearch.Split(new[] { ' ', '　' }, StringSplitOptions.RemoveEmptyEntries);
-        }
+        /// <returns>キーワード配列</returns>
+        public string[] GetTagsKeywords() => SplitKeywords(TagsSearch);
 
         /// <summary>
-        /// フィルター条件を取得する
+        /// メモ検索のキーワードを取得
+        /// </summary>
+        /// <returns>キーワード配列</returns>
+        public string[] GetMemoKeywords() => SplitKeywords(MemoSearch);
+
+        /// <summary>
+        /// フィルター条件を取得
         /// </summary>
         /// <returns>フィルター条件の辞書</returns>
-        public Dictionary<string, bool> GetFilters()
-        {
-            return new Dictionary<string, bool>
+        public Dictionary<string, bool> GetFilters() =>
+            new Dictionary<string, bool>
             {
                 { "Avatars", ShowAvatars },
                 { "Wearables", ShowWearables },
                 { "WorldObjects", ShowWorldObjects },
             };
-        }
 
         /// <summary>
-        /// ソート方法を取得する
-        /// </summary>
-        /// <returns>ソート方法</returns>
-        public SortMethod GetSortMethod()
-        {
-            return SortMethod;
-        }
-
-        /// <summary>
-        /// 検索条件をリセットする
+        /// 検索条件をリセット
+        /// すべての検索条件を初期値に戻す
         /// </summary>
         public void Reset()
         {
@@ -272,9 +257,9 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// タブ固有の検索条件をクリアする
+        /// タブ固有の検索条件をクリア
         /// </summary>
-        /// <param name="tabIndex">タブインデックス</param>
+        /// <param name="tabIndex">タブのインデックス（0: アバター, 2: ワールド）</param>
         public void ClearTabSpecificCriteria(int tabIndex)
         {
             switch (tabIndex)
@@ -290,12 +275,11 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
-        /// 検索条件をコピーする
+        /// 検索条件のディープコピーを作成
         /// </summary>
         /// <returns>コピーされた検索条件</returns>
-        public SearchCriteria Clone()
-        {
-            return new SearchCriteria
+        public SearchCriteria Clone() =>
+            new SearchCriteria
             {
                 SearchQuery = this.SearchQuery,
                 ShowAdvancedSearch = this.ShowAdvancedSearch,
@@ -312,11 +296,10 @@ namespace UnityEditorAssetBrowser.Models
                 CurrentPage = this.CurrentPage,
                 ItemsPerPage = this.ItemsPerPage,
             };
-        }
     }
 
     /// <summary>
-    /// ソート方法の列挙型
+    /// アイテムのソート方法を定義する列挙型
     /// </summary>
     public enum SortMethod
     {

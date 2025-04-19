@@ -18,6 +18,10 @@ using UnityEngine;
 
 namespace UnityEditorAssetBrowser.ViewModels
 {
+    /// <summary>
+    /// アセットブラウザのビューモデル
+    /// アセットの検索、フィルタリング、ソート、データベースの管理を行う
+    /// </summary>
     public class AssetBrowserViewModel
     {
         // イベント定義
@@ -530,6 +534,13 @@ namespace UnityEditorAssetBrowser.ViewModels
         }
         #endregion
 
+        /// <summary>
+        /// 画像のフルパスを取得
+        /// </summary>
+        /// <param name="imagePath">画像の相対パス</param>
+        /// <param name="aeDatabasePath">AEデータベースのパス</param>
+        /// <param name="kaDatabasePath">KAデータベースのパス</param>
+        /// <returns>画像のフルパス</returns>
         private string GetFullImagePath(
             string imagePath,
             string aeDatabasePath,
@@ -539,28 +550,28 @@ namespace UnityEditorAssetBrowser.ViewModels
             if (string.IsNullOrEmpty(imagePath))
                 return string.Empty;
 
-            if (imagePath.StartsWith("Datas"))
-            {
-                return Path.Combine(aeDatabasePath, imagePath.Replace("Datas\\", ""));
-            }
-            return Path.Combine(kaDatabasePath, "images", imagePath);
+            return imagePath.StartsWith("Datas")
+                ? Path.Combine(aeDatabasePath, imagePath.Replace("Datas\\", ""))
+                : Path.Combine(kaDatabasePath, "images", imagePath);
         }
 
+        /// <summary>
+        /// テクスチャを読み込む
+        /// </summary>
+        /// <param name="imagePath">画像の相対パス</param>
+        /// <param name="aeDatabasePath">AEデータベースのパス</param>
+        /// <param name="kaDatabasePath">KAデータベースのパス</param>
+        /// <returns>読み込まれたテクスチャ、読み込みに失敗した場合はnull</returns>
         private Texture2D? LoadTexture(
             string imagePath,
             string aeDatabasePath,
             string kaDatabasePath
         )
         {
-            if (string.IsNullOrEmpty(imagePath))
-                return null;
-
             string fullImagePath = GetFullImagePath(imagePath, aeDatabasePath, kaDatabasePath);
-            if (File.Exists(fullImagePath))
-            {
-                return ImageServices.Instance.LoadTexture(fullImagePath);
-            }
-            return null;
+            return File.Exists(fullImagePath)
+                ? ImageServices.Instance.LoadTexture(fullImagePath)
+                : null;
         }
 
         public void LoadAEDatabase(string path)
@@ -610,18 +621,15 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <summary>
         /// 現在のタブのアイテムを取得
         /// </summary>
-        /// <param name="selectedTab">選択中のタブ</param>
+        /// <param name="selectedTab">選択中のタブ（0: アバター, 1: アイテム, 2: ワールドオブジェクト）</param>
         /// <returns>現在のタブのアイテムリスト</returns>
-        public List<object> GetCurrentTabItems(int selectedTab)
-        {
-            var items = selectedTab switch
+        public List<object> GetCurrentTabItems(int selectedTab) =>
+            selectedTab switch
             {
                 0 => GetFilteredAvatars(),
                 1 => GetFilteredItems(),
                 2 => GetFilteredWorldObjects(),
                 _ => new List<object>(),
             };
-            return items;
-        }
     }
 }

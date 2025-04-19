@@ -1,9 +1,3 @@
-// Copyright (c) 2025 yuki-2525
-// This code is borrowed from AvatarExplorer(https://github.com/puk06/AvatarExplorer)
-// AvatarExplorer is licensed under the MIT License. https://github.com/puk06/AvatarExplorer/blob/main/LICENSE
-// This code is borrowed from AssetLibraryManager (https://github.com/MAIOTAchannel/AssetLibraryManager)
-// Used with permission from MAIOTAchannel
-
 #nullable enable
 
 using System;
@@ -45,13 +39,28 @@ namespace UnityEditorAssetBrowser
         #endregion
 
         #region Fields
+        /// <summary>ページネーション情報</summary>
         private PaginationInfo _paginationInfo = new PaginationInfo();
+
+        /// <summary>ページネーションのViewModel</summary>
         private PaginationViewModel _paginationViewModel = null!;
+
+        /// <summary>アセットブラウザーのViewModel</summary>
         private AssetBrowserViewModel _assetBrowserViewModel = null!;
+
+        /// <summary>検索のViewModel</summary>
         private SearchViewModel _searchViewModel = null!;
+
+        /// <summary>検索ビュー</summary>
         private SearchView _searchView = null!;
+
+        /// <summary>ページネーションビュー</summary>
         private PaginationView _paginationView = null!;
+
+        /// <summary>メインビュー</summary>
         private MainView _mainView = null!;
+
+        /// <summary>アイテム検索サービス</summary>
         private ItemSearchService _itemSearchService = null!;
 
         /// <summary>スクロールビューの位置</summary>
@@ -102,20 +111,28 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnEnable()
         {
-            // 設定を読み込み
+            InitializeServices();
+            InitializeViewModels();
+            InitializeViews();
+            RegisterEvents();
+        }
+
+        /// <summary>
+        /// サービスの初期化
+        /// </summary>
+        private void InitializeServices()
+        {
             DatabaseService.LoadSettings();
-
-            // サービスの初期化
             _itemSearchService = new ItemSearchService(DatabaseService.GetAEDatabase());
+        }
 
-            // ViewModelの初期化
+        /// <summary>
+        /// ViewModelの初期化
+        /// </summary>
+        private void InitializeViewModels()
+        {
             _paginationViewModel = new PaginationViewModel(_paginationInfo);
-            _searchViewModel = new SearchViewModel(
-                DatabaseService.GetAEDatabase(),
-                DatabaseService.GetKAAvatarsDatabase(),
-                DatabaseService.GetKAWearablesDatabase(),
-                DatabaseService.GetKAWorldObjectsDatabase()
-            );
+            _searchViewModel = new SearchViewModel(DatabaseService.GetAEDatabase());
             _assetBrowserViewModel = new AssetBrowserViewModel(
                 DatabaseService.GetAEDatabase(),
                 DatabaseService.GetKAAvatarsDatabase(),
@@ -124,8 +141,13 @@ namespace UnityEditorAssetBrowser
                 _paginationInfo,
                 _searchViewModel
             );
+        }
 
-            // Viewの初期化
+        /// <summary>
+        /// Viewの初期化
+        /// </summary>
+        private void InitializeViews()
+        {
             _searchView = new SearchView(
                 _searchViewModel,
                 _assetBrowserViewModel,
@@ -142,8 +164,13 @@ namespace UnityEditorAssetBrowser
                 DatabaseService.GetKADatabasePath(),
                 DatabaseService.GetAEDatabase()
             );
+        }
 
-            // シーン変更イベントの登録
+        /// <summary>
+        /// イベントの登録
+        /// </summary>
+        private void RegisterEvents()
+        {
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
         }
 
@@ -152,7 +179,14 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnDisable()
         {
-            // イベントの解除
+            UnregisterEvents();
+        }
+
+        /// <summary>
+        /// イベントの解除
+        /// </summary>
+        private void UnregisterEvents()
+        {
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
         }
 
@@ -161,18 +195,40 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnHierarchyChanged()
         {
-            // パスが設定されている場合のみ画像キャッシュを更新
-            if (
-                !string.IsNullOrEmpty(DatabaseService.GetAEDatabasePath())
-                && !string.IsNullOrEmpty(DatabaseService.GetKADatabasePath())
-            )
+            if (AreDatabasePathsSet())
             {
-                _assetBrowserViewModel.RefreshImageCache(
-                    DatabaseService.GetAEDatabasePath(),
-                    DatabaseService.GetKADatabasePath()
-                );
-                _searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
+                UpdateImageCache();
+                UpdateSearchTab();
             }
+        }
+
+        /// <summary>
+        /// データベースパスが設定されているか確認
+        /// </summary>
+        /// <returns>両方のパスが設定されている場合はtrue</returns>
+        private bool AreDatabasePathsSet()
+        {
+            return !string.IsNullOrEmpty(DatabaseService.GetAEDatabasePath())
+                && !string.IsNullOrEmpty(DatabaseService.GetKADatabasePath());
+        }
+
+        /// <summary>
+        /// 画像キャッシュの更新
+        /// </summary>
+        private void UpdateImageCache()
+        {
+            _assetBrowserViewModel.RefreshImageCache(
+                DatabaseService.GetAEDatabasePath(),
+                DatabaseService.GetKADatabasePath()
+            );
+        }
+
+        /// <summary>
+        /// 検索タブの更新
+        /// </summary>
+        private void UpdateSearchTab()
+        {
+            _searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
         }
 
         /// <summary>
@@ -201,18 +257,43 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void RefreshDatabases()
         {
-            // 画像キャッシュをクリア
-            ImageServices.Instance.ClearCache();
+            ClearImageCache();
+            ReloadDatabases();
+            UpdateAssetBrowserDatabases();
+            ResetPagination();
+        }
 
-            // データベースを再読み込み
+        /// <summary>
+        /// 画像キャッシュのクリア
+        /// </summary>
+        private void ClearImageCache()
+        {
+            ImageServices.Instance.ClearCache();
+        }
+
+        /// <summary>
+        /// データベースの再読み込み
+        /// </summary>
+        private void ReloadDatabases()
+        {
             DatabaseService.LoadAndUpdateAEDatabase();
             DatabaseService.LoadAndUpdateKADatabase();
+        }
 
-            // データベースを更新
+        /// <summary>
+        /// アセットブラウザーのデータベースを更新
+        /// </summary>
+        private void UpdateAssetBrowserDatabases()
+        {
             _assetBrowserViewModel.LoadAEDatabase(DatabaseService.GetAEDatabasePath());
             _assetBrowserViewModel.LoadKADatabase(DatabaseService.GetKADatabasePath());
+        }
 
-            // ページをリセット
+        /// <summary>
+        /// ページネーションのリセット
+        /// </summary>
+        private void ResetPagination()
+        {
             _paginationInfo.ResetPage();
         }
     }
