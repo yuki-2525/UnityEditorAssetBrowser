@@ -1,7 +1,5 @@
 #nullable enable
 
-using System;
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
@@ -12,8 +10,8 @@ using UnityEngine;
 namespace UnityEditorAssetBrowser.Views
 {
     /// <summary>
-    /// メインウィンドウのビュー
-    /// アセットブラウザーのメインUIを管理し、タブ切り替えやコンテンツ表示を制御する
+    /// メインウィンドウの表示を管理するビュー
+    /// アバター、アイテム、ワールドオブジェクトのタブ切り替えと表示を制御する
     /// </summary>
     public class MainView
     {
@@ -33,15 +31,15 @@ namespace UnityEditorAssetBrowser.Views
         private readonly PaginationView _paginationView;
 
         /// <summary>アセットアイテムビュー</summary>
-        private AssetItemView _assetItemView;
+        private readonly AssetItemView _assetItemView;
 
         /// <summary>スクロール位置</summary>
         private Vector2 scrollPosition;
 
-        /// <summary>AEデータベースのパス</summary>
+        /// <summary>AEデータベースパス</summary>
         private string aeDatabasePath;
 
-        /// <summary>KAデータベースのパス</summary>
+        /// <summary>KAデータベースパス</summary>
         private string kaDatabasePath;
 
         /// <summary>AEデータベース</summary>
@@ -58,8 +56,8 @@ namespace UnityEditorAssetBrowser.Views
         /// <param name="paginationViewModel">ページネーションのViewModel</param>
         /// <param name="searchView">検索ビュー</param>
         /// <param name="paginationView">ページネーションビュー</param>
-        /// <param name="aeDatabasePath">AEデータベースのパス</param>
-        /// <param name="kaDatabasePath">KAデータベースのパス</param>
+        /// <param name="aeDatabasePath">AEデータベースパス</param>
+        /// <param name="kaDatabasePath">KAデータベースパス</param>
         /// <param name="aeDatabase">AEデータベース</param>
         public MainView(
             AssetBrowserViewModel assetBrowserViewModel,
@@ -116,12 +114,12 @@ namespace UnityEditorAssetBrowser.Views
                 () =>
                 {
                     _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
-                    _assetItemView = new AssetItemView(aeDatabase);
+                    _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
                 },
                 () =>
                 {
                     _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
-                    _assetItemView = new AssetItemView(aeDatabase);
+                    _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
                 }
             );
         }
@@ -200,8 +198,11 @@ namespace UnityEditorAssetBrowser.Views
         /// </summary>
         private void ShowAvatarsContent()
         {
-            var items = _assetBrowserViewModel.GetFilteredAvatars();
-            foreach (var item in items)
+            var filteredItems = _assetBrowserViewModel.GetFilteredAvatars();
+            var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
+
+            foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
@@ -219,8 +220,11 @@ namespace UnityEditorAssetBrowser.Views
         /// </summary>
         private void ShowItemsContent()
         {
-            var items = _assetBrowserViewModel.GetFilteredItems();
-            foreach (var item in items)
+            var filteredItems = _assetBrowserViewModel.GetFilteredItems();
+            var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
+
+            foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
@@ -238,16 +242,19 @@ namespace UnityEditorAssetBrowser.Views
         /// </summary>
         private void ShowWorldObjectsContent()
         {
-            var items = _assetBrowserViewModel.GetFilteredWorldObjects();
-            foreach (var item in items)
+            var filteredItems = _assetBrowserViewModel.GetFilteredWorldObjects();
+            var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
+
+            foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    _assetItemView.ShowAvatarItem(aeItem, false, false);
+                    _assetItemView.ShowAvatarItem(aeItem, true, false);
                 }
-                else if (item is KonoAssetWorldObjectItem kaItem)
+                else if (item is KonoAssetWorldObjectItem worldItem)
                 {
-                    _assetItemView.ShowKonoAssetWorldObjectItem(kaItem);
+                    _assetItemView.ShowKonoAssetWorldObjectItem(worldItem);
                 }
             }
         }

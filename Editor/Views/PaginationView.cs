@@ -9,8 +9,8 @@ using UnityEngine;
 namespace UnityEditorAssetBrowser.Views
 {
     /// <summary>
-    /// ページネーションのビュー
-    /// ページ切り替えボタンと現在のページ情報を表示する
+    /// ページネーションの表示を管理するビュー
+    /// 前へ/次へボタンと現在のページ情報を表示する
     /// </summary>
     public class PaginationView
     {

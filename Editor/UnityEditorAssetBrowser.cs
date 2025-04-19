@@ -40,7 +40,7 @@ namespace UnityEditorAssetBrowser
 
         #region Fields
         /// <summary>ページネーション情報</summary>
-        private PaginationInfo _paginationInfo = new PaginationInfo();
+        private readonly PaginationInfo _paginationInfo = new();
 
         /// <summary>ページネーションのViewModel</summary>
         private PaginationViewModel _paginationViewModel = null!;
@@ -70,22 +70,22 @@ namespace UnityEditorAssetBrowser
         private bool showAdvancedSearch => _searchViewModel.SearchCriteria.ShowAdvancedSearch;
 
         /// <summary>タブのラベル</summary>
-        private string[] tabs = { "アバター", "アバター関連", "ワールド" };
+        private readonly string[] tabs = { "アバター", "アバター関連", "ワールド" };
 
         /// <summary>フォールドアウト状態の管理</summary>
-        private Dictionary<string, bool> foldouts = new Dictionary<string, bool>();
+        private readonly Dictionary<string, bool> foldouts = new();
 
         /// <summary>画像のキャッシュ</summary>
         private Dictionary<string, Texture2D> imageCache => ImageServices.Instance.imageCache;
 
         /// <summary>メモのフォールドアウト状態の管理</summary>
-        private Dictionary<string, bool> memoFoldouts = new Dictionary<string, bool>();
+        private readonly Dictionary<string, bool> memoFoldouts = new();
 
         /// <summary>UnityPackageのフォールドアウト状態の管理</summary>
-        private Dictionary<string, bool> unityPackageFoldouts = new Dictionary<string, bool>();
+        private readonly Dictionary<string, bool> unityPackageFoldouts = new();
 
         /// <summary>ソート方法のラベル</summary>
-        private string[] sortLabels =
+        private readonly string[] sortLabels =
         {
             "追加順（新しい順）",
             "追加順（古い順）",
@@ -114,7 +114,7 @@ namespace UnityEditorAssetBrowser
             InitializeServices();
             InitializeViewModels();
             InitializeViews();
-            RegisterEvents();
+            RegisterEventHandlers();
         }
 
         /// <summary>
@@ -167,9 +167,9 @@ namespace UnityEditorAssetBrowser
         }
 
         /// <summary>
-        /// イベントの登録
+        /// イベントハンドラの登録
         /// </summary>
-        private void RegisterEvents()
+        private void RegisterEventHandlers()
         {
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
         }
@@ -179,13 +179,13 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnDisable()
         {
-            UnregisterEvents();
+            UnregisterEventHandlers();
         }
 
         /// <summary>
-        /// イベントの解除
+        /// イベントハンドラの解除
         /// </summary>
-        private void UnregisterEvents()
+        private void UnregisterEventHandlers()
         {
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
         }
@@ -198,14 +198,14 @@ namespace UnityEditorAssetBrowser
             if (AreDatabasePathsSet())
             {
                 UpdateImageCache();
-                UpdateSearchTab();
+                _searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
             }
         }
 
         /// <summary>
         /// データベースパスが設定されているか確認
         /// </summary>
-        /// <returns>両方のパスが設定されている場合はtrue</returns>
+        /// <returns>設定されている場合はtrue</returns>
         private bool AreDatabasePathsSet()
         {
             return !string.IsNullOrEmpty(DatabaseService.GetAEDatabasePath())
@@ -221,14 +221,6 @@ namespace UnityEditorAssetBrowser
                 DatabaseService.GetAEDatabasePath(),
                 DatabaseService.GetKADatabasePath()
             );
-        }
-
-        /// <summary>
-        /// 検索タブの更新
-        /// </summary>
-        private void UpdateSearchTab()
-        {
-            _searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
         }
 
         /// <summary>
@@ -259,12 +251,12 @@ namespace UnityEditorAssetBrowser
         {
             ClearImageCache();
             ReloadDatabases();
-            UpdateAssetBrowserDatabases();
+            UpdateViewModels();
             ResetPagination();
         }
 
         /// <summary>
-        /// 画像キャッシュのクリア
+        /// 画像キャッシュをクリア
         /// </summary>
         private void ClearImageCache()
         {
@@ -272,7 +264,7 @@ namespace UnityEditorAssetBrowser
         }
 
         /// <summary>
-        /// データベースの再読み込み
+        /// データベースを再読み込み
         /// </summary>
         private void ReloadDatabases()
         {
@@ -281,16 +273,16 @@ namespace UnityEditorAssetBrowser
         }
 
         /// <summary>
-        /// アセットブラウザーのデータベースを更新
+        /// ViewModelを更新
         /// </summary>
-        private void UpdateAssetBrowserDatabases()
+        private void UpdateViewModels()
         {
             _assetBrowserViewModel.LoadAEDatabase(DatabaseService.GetAEDatabasePath());
             _assetBrowserViewModel.LoadKADatabase(DatabaseService.GetKADatabasePath());
         }
 
         /// <summary>
-        /// ページネーションのリセット
+        /// ページネーションをリセット
         /// </summary>
         private void ResetPagination()
         {
