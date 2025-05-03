@@ -101,7 +101,7 @@ namespace UnityEditorAssetBrowser.Services
             {
                 ShowErrorDialog(
                     "パスエラー",
-                    "入力したパスが誤っています\n\nAvatarExplorer-v1.0.x/Datas\nを指定してください"
+                    "入力したパスが誤っています\n\nAvatarExplorer-v1.x.x/Datas\nを指定してください"
                 );
                 ResetAEDatabasePath();
             }

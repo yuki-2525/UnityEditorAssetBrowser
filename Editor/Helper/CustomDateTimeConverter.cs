@@ -40,10 +40,7 @@ namespace UnityEditorAssetBrowser.Helper
             if (reader.TokenType == JsonToken.String)
             {
                 string dateString = reader.Value?.ToString() ?? string.Empty;
-
-                // 日付形式の変換
-                if (DateTime.TryParse(dateString, out DateTime result))
-                    return result;
+                return GetDate(dateString);
             }
 
             throw new JsonSerializationException(
@@ -86,41 +83,17 @@ namespace UnityEditorAssetBrowser.Helper
 
                 // Unixタイムスタンプの場合
                 if (allDigits)
-                    return DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(date)).DateTime;
-
-                // 数字のみを抽出
-                var allDigitsStr = "";
-                foreach (var c in date)
                 {
-                    if (char.IsDigit(c))
-                        allDigitsStr += c;
+                    // ミリ秒単位のUnixタイムスタンプをDateTimeに変換
+                    return DateTimeOffset.FromUnixTimeMilliseconds(long.Parse(date)).DateTime;
                 }
 
-                // 14桁の数字でない場合はUnixエポックを返す
-                if (allDigitsStr.Length != 14)
-                    return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
+                // 通常の日付文字列の場合
+                if (DateTime.TryParse(date, out DateTime result))
+                    return result;
 
-                // 日付の各要素を抽出
-                var year = allDigitsStr.Substring(0, 4);
-                var month = allDigitsStr.Substring(4, 2);
-                var day = allDigitsStr.Substring(6, 2);
-                var hour = allDigitsStr.Substring(8, 2);
-                var minute = allDigitsStr.Substring(10, 2);
-                var second = allDigitsStr.Substring(12, 2);
-
-                // DateTimeオブジェクトを作成
-                var dateTime = new DateTime(
-                    int.Parse(year),
-                    int.Parse(month),
-                    int.Parse(day),
-                    int.Parse(hour),
-                    int.Parse(minute),
-                    int.Parse(second),
-                    DateTimeKind.Unspecified
-                );
-
-                // ローカルのタイムゾーンの時間をUTCに変換
-                return TimeZoneInfo.ConvertTimeToUtc(dateTime, TimeZoneInfo.Local);
+                Debug.LogWarning($"Failed to parse date: {date}");
+                return DateTimeOffset.FromUnixTimeMilliseconds(0).DateTime;
             }
             catch (Exception ex)
             {

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using UnityEditorAssetBrowser.Models;
 using UnityEngine;
 
@@ -53,12 +54,18 @@ namespace UnityEditorAssetBrowser.Helper
 
                 var json = File.ReadAllText(jsonPath);
 
+                // JSONシリアライザーの設定
+                var settings = new JsonSerializerSettings
+                {
+                    Converters = new List<JsonConverter> { new CustomDateTimeConverter() },
+                };
+
                 // JSONが配列形式かどうかを確認
                 if (json.TrimStart().StartsWith("["))
                 {
                     // 配列形式の場合は、AvatarExplorerItem[]としてデシリアライズしてから
                     // AvatarExplorerDatabaseに変換
-                    var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(json);
+                    var items = JsonConvert.DeserializeObject<AvatarExplorerItem[]>(json, settings);
                     if (items != null)
                     {
                         // 対応アバターのパスを変換
@@ -78,7 +85,10 @@ namespace UnityEditorAssetBrowser.Helper
                 else
                 {
                     // オブジェクト形式の場合は、そのままAvatarExplorerDatabaseとしてデシリアライズ
-                    var database = JsonConvert.DeserializeObject<AvatarExplorerDatabase>(json);
+                    var database = JsonConvert.DeserializeObject<AvatarExplorerDatabase>(
+                        json,
+                        settings
+                    );
                     if (database?.Items != null)
                     {
                         // 対応アバターのパスを変換
