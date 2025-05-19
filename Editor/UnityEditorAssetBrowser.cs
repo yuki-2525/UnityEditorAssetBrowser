@@ -195,21 +195,26 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnHierarchyChanged()
         {
-            if (AreDatabasePathsSet())
-            {
-                UpdateImageCache();
-                _searchViewModel.SetCurrentTab(_paginationInfo.SelectedTab);
-            }
-        }
+            string aeDatabasePath = DatabaseService.GetAEDatabasePath();
+            string kaDatabasePath = DatabaseService.GetKADatabasePath();
 
-        /// <summary>
-        /// データベースパスが設定されているか確認
-        /// </summary>
-        /// <returns>設定されている場合はtrue</returns>
-        private bool AreDatabasePathsSet()
-        {
-            return !string.IsNullOrEmpty(DatabaseService.GetAEDatabasePath())
-                && !string.IsNullOrEmpty(DatabaseService.GetKADatabasePath());
+            // 画像キャッシュをクリア
+            ImageServices.Instance.ClearCache();
+
+            // データベースを再読み込み
+            _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
+            _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
+            _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+
+            // 現在表示中のアイテムの画像を再読み込み
+            var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
+                _paginationViewModel.SelectedTab
+            );
+            ImageServices.Instance.ReloadCurrentItemsImages(
+                currentItems,
+                aeDatabasePath,
+                kaDatabasePath
+            );
         }
 
         /// <summary>
@@ -243,50 +248,5 @@ namespace UnityEditorAssetBrowser
             return _itemSearchService.IsWorldCategory(category);
         }
         #endregion
-
-        /// <summary>
-        /// データベースを再読み込みする
-        /// </summary>
-        private void RefreshDatabases()
-        {
-            ClearImageCache();
-            ReloadDatabases();
-            UpdateViewModels();
-            ResetPagination();
-        }
-
-        /// <summary>
-        /// 画像キャッシュをクリア
-        /// </summary>
-        private void ClearImageCache()
-        {
-            ImageServices.Instance.ClearCache();
-        }
-
-        /// <summary>
-        /// データベースを再読み込み
-        /// </summary>
-        private void ReloadDatabases()
-        {
-            DatabaseService.LoadAndUpdateAEDatabase();
-            DatabaseService.LoadAndUpdateKADatabase();
-        }
-
-        /// <summary>
-        /// ViewModelを更新
-        /// </summary>
-        private void UpdateViewModels()
-        {
-            _assetBrowserViewModel.LoadAEDatabase(DatabaseService.GetAEDatabasePath());
-            _assetBrowserViewModel.LoadKADatabase(DatabaseService.GetKADatabasePath());
-        }
-
-        /// <summary>
-        /// ページネーションをリセット
-        /// </summary>
-        private void ResetPagination()
-        {
-            _paginationInfo.ResetPage();
-        }
     }
 }

@@ -73,12 +73,7 @@ namespace UnityEditorAssetBrowser.Services
                     matchesKeyword = true;
 
                 // カテゴリ
-                if (
-                    item is AvatarExplorerItem aeItem
-                    && aeItem
-                        .GetAECategoryName()
-                        .Contains(keyword, StringComparison.InvariantCultureIgnoreCase)
-                )
+                if (IsCategoryMatch(item, new[] { keyword }))
                     matchesKeyword = true;
 
                 // 対応アバター

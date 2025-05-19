@@ -258,8 +258,10 @@ namespace UnityEditorAssetBrowser.Views
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("更新", GUILayout.Width(150)))
             {
-                _assetBrowserViewModel.RefreshDatabases(aeDatabasePath, kaDatabasePath);
-                _assetBrowserViewModel.RefreshImageCache(aeDatabasePath, kaDatabasePath);
+                // データベースを更新
+                _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
+                _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
             EditorGUILayout.EndHorizontal();
 

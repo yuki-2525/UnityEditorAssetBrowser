@@ -110,5 +110,52 @@ namespace UnityEditorAssetBrowser.Services
         {
             imageCache.Clear();
         }
+
+        /// <summary>
+        /// 現在表示中のアイテムの画像を再読み込み
+        /// </summary>
+        /// <param name="items">再読み込みするアイテムのリスト</param>
+        /// <param name="aeDatabasePath">AEデータベースのパス</param>
+        /// <param name="kaDatabasePath">KAデータベースのパス</param>
+        public void ReloadCurrentItemsImages(
+            IEnumerable<object> items,
+            string aeDatabasePath,
+            string kaDatabasePath
+        )
+        {
+            foreach (var item in items)
+            {
+                string imagePath = GetItemImagePath(item);
+                if (!string.IsNullOrEmpty(imagePath))
+                {
+                    string fullImagePath = GetFullImagePath(
+                        imagePath,
+                        aeDatabasePath,
+                        kaDatabasePath
+                    );
+                    if (File.Exists(fullImagePath))
+                    {
+                        LoadTexture(fullImagePath);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 画像の完全なパスを取得
+        /// </summary>
+        private string GetFullImagePath(
+            string imagePath,
+            string aeDatabasePath,
+            string kaDatabasePath
+        )
+        {
+            if (string.IsNullOrEmpty(imagePath))
+                return string.Empty;
+
+            return imagePath.StartsWith("Datas")
+                ? Path.Combine(aeDatabasePath, imagePath.Replace("Datas\\", ""))
+                : Path.Combine(kaDatabasePath, "images", imagePath);
+        }
     }
 }
