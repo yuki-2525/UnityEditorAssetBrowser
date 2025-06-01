@@ -111,6 +111,7 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnEnable()
         {
+            InitializeCategoryAssetTypes();
             InitializeServices();
             InitializeViewModels();
             InitializeViews();
@@ -232,6 +233,85 @@ namespace UnityEditorAssetBrowser
         private void OnGUI()
         {
             _mainView.DrawMainWindow();
+        }
+
+        /// <summary>
+        /// カテゴリごとのアセットタイプ設定を初期化
+        /// EditorPrefsから値を読み込むか、デフォルト値を設定する
+        /// </summary>
+        private void InitializeCategoryAssetTypes()
+        {
+            // 初期値の設定
+            var defaultTypes = new Dictionary<string, int>
+            {
+                { "アバター", 0 }, // アバター
+                { "衣装", 1 }, // アバター関連アセット
+                { "テクスチャ", 1 }, // アバター関連アセット
+                { "ギミック", 1 }, // アバター関連アセット
+                { "アクセサリー", 1 }, // アバター関連アセット
+                { "髪型", 1 }, // アバター関連アセット
+                { "アニメーション", 1 }, // アバター関連アセット
+                { "ツール", 3 }, // その他
+                { "シェーダー", 3 }, // その他
+            };
+
+            // 指定された順序のカテゴリの初期化
+            var orderedCategories = new[]
+            {
+                "アバター",
+                "衣装",
+                "テクスチャ",
+                "ギミック",
+                "アクセサリー",
+                "髪型",
+                "アニメーション",
+                "ツール",
+                "シェーダー",
+            };
+
+            foreach (var category in orderedCategories)
+            {
+                var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+                if (!EditorPrefs.HasKey(key) && defaultTypes.ContainsKey(category))
+                {
+                    EditorPrefs.SetInt(key, defaultTypes[category]);
+                }
+            }
+
+            // その他のカテゴリの初期化
+            var aeDatabase = DatabaseService.GetAEDatabase();
+            if (aeDatabase != null)
+            {
+                var otherCategories = aeDatabase
+                    .Items.Select(item => item.GetAECategoryName())
+                    .Distinct()
+                    .Where(category => !orderedCategories.Contains(category))
+                    .OrderBy(category => category);
+
+                foreach (var category in otherCategories)
+                {
+                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+                    if (!EditorPrefs.HasKey(key))
+                    {
+                        var defaultValue = GetDefaultAssetTypeForCategory(category);
+                        EditorPrefs.SetInt(key, defaultValue);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// カテゴリのデフォルトアセットタイプを取得
+        /// </summary>
+        /// <param name="category">カテゴリ名</param>
+        /// <returns>デフォルトのアセットタイプのインデックス</returns>
+        private int GetDefaultAssetTypeForCategory(string category)
+        {
+            if (category.Contains("ワールド") || category.Contains("world"))
+            {
+                return 2; // ワールドアセット
+            }
+            return 3; // その他
         }
         #endregion
 

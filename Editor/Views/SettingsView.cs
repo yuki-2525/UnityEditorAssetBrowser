@@ -55,11 +55,6 @@ namespace UnityEditorAssetBrowser.Views
         private const string PREFS_KEY_PREFIX = "UnityEditorAssetBrowser_CategoryAssetType_";
 
         /// <summary>
-        /// 初期化が完了したかどうかを示すフラグ
-        /// </summary>
-        private bool _isInitialized = false;
-
-        /// <summary>
         /// コンストラクタ
         /// </summary>
         /// <param name="onAEDatabasePathChanged">AEデータベースのパスが変更された時のコールバック</param>
@@ -80,40 +75,12 @@ namespace UnityEditorAssetBrowser.Views
         /// </summary>
         private void InitializeCategoryAssetTypes()
         {
-            if (_isInitialized)
-            {
-                return;
-            }
-            _isInitialized = true;
-
-            // 初期値の設定
-            var defaultTypes = new Dictionary<string, int>
-            {
-                { "アバター", 0 }, // アバター
-                { "衣装", 1 }, // アバター関連アセット
-                { "テクスチャ", 1 }, // アバター関連アセット
-                { "ギミック", 1 }, // アバター関連アセット
-                { "アクセサリー", 1 }, // アバター関連アセット
-                { "髪型", 1 }, // アバター関連アセット
-                { "アニメーション", 1 }, // アバター関連アセット
-                { "ツール", 3 }, // その他
-                { "シェーダー", 3 }, // その他
-            };
-
             // 指定された順序のカテゴリの初期化
             foreach (var category in _orderedCategories)
             {
                 var key = PREFS_KEY_PREFIX + category;
-                if (EditorPrefs.HasKey(key))
-                {
-                    var value = EditorPrefs.GetInt(key);
-                    _categoryAssetTypes[category] = value;
-                }
-                else if (defaultTypes.ContainsKey(category))
-                {
-                    _categoryAssetTypes[category] = defaultTypes[category];
-                    EditorPrefs.SetInt(key, defaultTypes[category]);
-                }
+                var value = EditorPrefs.GetInt(key);
+                _categoryAssetTypes[category] = value;
             }
 
             // その他のカテゴリの初期化
@@ -129,17 +96,8 @@ namespace UnityEditorAssetBrowser.Views
                 foreach (var category in otherCategories)
                 {
                     var key = PREFS_KEY_PREFIX + category;
-                    if (EditorPrefs.HasKey(key))
-                    {
-                        var value = EditorPrefs.GetInt(key);
-                        _categoryAssetTypes[category] = value;
-                    }
-                    else
-                    {
-                        var defaultValue = GetDefaultAssetTypeForCategory(category);
-                        _categoryAssetTypes[category] = defaultValue;
-                        EditorPrefs.SetInt(key, defaultValue);
-                    }
+                    var value = EditorPrefs.GetInt(key);
+                    _categoryAssetTypes[category] = value;
                 }
             }
         }

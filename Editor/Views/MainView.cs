@@ -1,5 +1,6 @@
 #nullable enable
 
+using System;
 using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
@@ -226,13 +227,10 @@ namespace UnityEditorAssetBrowser.Views
                     var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
 
                     // 設定されたアセットタイプに基づいて表示を決定
-                    if (EditorPrefs.HasKey(key))
+                    var assetType = EditorPrefs.GetInt(key);
+                    if (assetType == 2) // ワールドアセット
                     {
-                        var assetType = EditorPrefs.GetInt(key);
-                        if (assetType == 2) // ワールドアセット
-                        {
-                            _assetItemView.ShowAvatarItem(aeItem, true, false);
-                        }
+                        _assetItemView.ShowAvatarItem(aeItem, true, false);
                     }
                 }
                 else if (item is KonoAssetWorldObjectItem worldItem)
