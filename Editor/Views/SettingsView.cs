@@ -197,7 +197,7 @@ namespace UnityEditorAssetBrowser.Views
             {
                 EditorGUILayout.Space(10);
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.LabelField("AvatarExplorer カテゴリ一覧", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField("AvatarExplorer カテゴリ設定", EditorStyles.boldLabel);
 
                 _categoryScrollPosition = EditorGUILayout.BeginScrollView(_categoryScrollPosition);
 

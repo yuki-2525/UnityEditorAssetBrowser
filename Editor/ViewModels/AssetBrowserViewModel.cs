@@ -97,10 +97,23 @@ namespace UnityEditorAssetBrowser.ViewModels
         {
             var items = new List<object>();
 
-            // AEのアバター（type=0）を追加
+            // AEのアバターを追加
             if (_aeDatabase?.Items != null)
             {
-                items.AddRange(_aeDatabase.Items.Where(item => item.Type == "0"));
+                items.AddRange(
+                    _aeDatabase.Items.Where(item =>
+                    {
+                        var category = item.GetAECategoryName();
+                        var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+
+                        // アセットタイプが0（アバター）のアイテムのみを表示
+                        if (EditorPrefs.HasKey(key))
+                        {
+                            return EditorPrefs.GetInt(key) == 0;
+                        }
+                        return item.Type == "0"; // キーが存在しない場合は従来の判定
+                    })
+                );
             }
 
             // KAのアバターを追加
@@ -121,19 +134,28 @@ namespace UnityEditorAssetBrowser.ViewModels
             var items = new List<object>();
             if (_aeDatabase != null)
             {
-                // Type!=0 かつ CustomCategoryに"ワールド"または"world"が含まれていないアイテムを追加
                 items.AddRange(
                     _aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && !item.CustomCategory.Contains(
-                            "ワールド",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                        && !item.CustomCategory.Contains(
-                            "world",
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
+                    {
+                        var category = item.GetAECategoryName();
+                        var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+
+                        // アセットタイプが1（アバター関連アセット）のアイテムのみを表示
+                        if (EditorPrefs.HasKey(key))
+                        {
+                            return EditorPrefs.GetInt(key) == 1;
+                        }
+                        // キーが存在しない場合は従来の判定
+                        return item.Type != "0"
+                            && !item.CustomCategory.Contains(
+                                "ワールド",
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                            && !item.CustomCategory.Contains(
+                                "world",
+                                StringComparison.OrdinalIgnoreCase
+                            );
+                    })
                 );
             }
             if (_kaWearablesDatabase != null)
@@ -157,18 +179,28 @@ namespace UnityEditorAssetBrowser.ViewModels
             {
                 items.AddRange(
                     _aeDatabase.Items.Where(item =>
-                        item.Type != "0"
-                        && (
-                            item.CustomCategory.Contains(
-                                "ワールド",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                            || item.CustomCategory.Contains(
-                                "world",
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                    )
+                    {
+                        var category = item.GetAECategoryName();
+                        var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+
+                        // アセットタイプが2（ワールドオブジェクト）のアイテムのみを表示
+                        if (EditorPrefs.HasKey(key))
+                        {
+                            return EditorPrefs.GetInt(key) == 2;
+                        }
+                        // キーが存在しない場合は従来の判定
+                        return item.Type != "0"
+                            && (
+                                item.CustomCategory.Contains(
+                                    "ワールド",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                                || item.CustomCategory.Contains(
+                                    "world",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            );
+                    })
                 );
             }
 

@@ -235,7 +235,8 @@ namespace UnityEditorAssetBrowser.Views
             int totalItems = _paginationViewModel.GetCurrentTabItemCount(
                 () => _assetBrowserViewModel.GetFilteredAvatars(),
                 () => _assetBrowserViewModel.GetFilteredItems(),
-                () => _assetBrowserViewModel.GetFilteredWorldObjects()
+                () => _assetBrowserViewModel.GetFilteredWorldObjects(),
+                () => _assetBrowserViewModel.GetFilteredOthers()
             );
             EditorGUILayout.LabelField($"検索結果: {totalItems}件");
             EditorGUILayout.Space(10);
