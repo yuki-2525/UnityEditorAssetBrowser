@@ -12,6 +12,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
+using UnityEditorAssetBrowser.ViewModels;
 using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Services
@@ -62,6 +63,24 @@ namespace UnityEditorAssetBrowser.Services
         /// </summary>
         private static KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase;
 
+        private static AssetBrowserViewModel? _assetBrowserViewModel;
+        private static SearchViewModel? _searchViewModel;
+        private static PaginationViewModel? _paginationViewModel;
+
+        /// <summary>
+        /// ViewModelの参照を設定する
+        /// </summary>
+        public static void SetViewModels(
+            AssetBrowserViewModel assetBrowserViewModel,
+            SearchViewModel searchViewModel,
+            PaginationViewModel paginationViewModel
+        )
+        {
+            _assetBrowserViewModel = assetBrowserViewModel;
+            _searchViewModel = searchViewModel;
+            _paginationViewModel = paginationViewModel;
+        }
+
         /// <summary>
         /// データベースの設定を読み込む
         /// 保存されたパスからデータベースを読み込み、更新する
@@ -99,11 +118,11 @@ namespace UnityEditorAssetBrowser.Services
             aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
             if (aeDatabase == null)
             {
+                OnAEDatabasePathChanged("");
                 ShowErrorDialog(
                     "パスエラー",
                     "入力したパスが誤っています\n\nAvatarExplorer-v1.x.x/Datas\nを指定してください"
                 );
-                ResetAEDatabasePath();
             }
         }
 
@@ -119,12 +138,11 @@ namespace UnityEditorAssetBrowser.Services
             var metadataPath = Path.Combine(kaDatabasePath, "metadata");
             if (!Directory.Exists(metadataPath))
             {
+                OnKADatabasePathChanged("");
                 ShowErrorDialog(
                     "パスエラー",
                     "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください"
                 );
-                ResetKADatabasePath();
-                return;
             }
 
             var result = KADatabaseHelper.LoadKADatabaseFiles(metadataPath);
@@ -143,22 +161,38 @@ namespace UnityEditorAssetBrowser.Services
             EditorUtility.DisplayDialog(title, message, "OK");
         }
 
-        /// <summary>
-        /// AvatarExplorerデータベースのパスをリセットする
-        /// </summary>
-        private static void ResetAEDatabasePath()
+        public static void OnAEDatabasePathChanged(string path)
         {
-            aeDatabasePath = "";
+            SetAEDatabasePath(path);
             SaveSettings();
+
+            // データベースを更新
+            if (
+                _assetBrowserViewModel != null
+                && _searchViewModel != null
+                && _paginationViewModel != null
+            )
+            {
+                _assetBrowserViewModel.LoadAEDatabase(path);
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+            }
         }
 
-        /// <summary>
-        /// KonoAssetデータベースのパスをリセットする
-        /// </summary>
-        private static void ResetKADatabasePath()
+        public static void OnKADatabasePathChanged(string path)
         {
-            kaDatabasePath = "";
+            SetKADatabasePath(path);
             SaveSettings();
+
+            // データベースを更新
+            if (
+                _assetBrowserViewModel != null
+                && _searchViewModel != null
+                && _paginationViewModel != null
+            )
+            {
+                _assetBrowserViewModel.LoadKADatabase(path);
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+            }
         }
 
         /// <summary>

@@ -160,8 +160,6 @@ namespace UnityEditorAssetBrowser
                 _paginationViewModel,
                 _searchView,
                 _paginationView,
-                DatabaseService.GetAEDatabasePath(),
-                DatabaseService.GetKADatabasePath(),
                 DatabaseService.GetAEDatabase()
             );
         }
