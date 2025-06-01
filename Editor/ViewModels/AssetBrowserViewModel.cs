@@ -182,6 +182,37 @@ namespace UnityEditorAssetBrowser.ViewModels
         }
 
         /// <summary>
+        /// その他のアセットをフィルタリングして取得
+        /// </summary>
+        /// <returns>フィルタリングされたその他のアセットのリスト</returns>
+        public List<object> GetFilteredOthers()
+        {
+            var items = new List<object>();
+
+            // AEデータベースのアイテムをフィルタリング
+            if (_aeDatabase != null)
+            {
+                foreach (var item in _aeDatabase.Items)
+                {
+                    var category = item.GetAECategoryName();
+                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+
+                    // 設定されたアセットタイプに基づいてフィルタリング
+                    if (EditorPrefs.HasKey(key))
+                    {
+                        var assetType = EditorPrefs.GetInt(key);
+                        if (assetType == 3) // その他
+                        {
+                            items.Add(item);
+                        }
+                    }
+                }
+            }
+
+            return SortItems(items.Where(_searchViewModel.IsItemMatchSearch).ToList());
+        }
+
+        /// <summary>
         /// アイテムをソートする
         /// </summary>
         /// <param name="items">ソートするアイテムリスト</param>
