@@ -98,13 +98,20 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <param name="getFilteredAvatars">フィルターされたアバターを取得する関数</param>
         /// <param name="getFilteredItems">フィルターされたアイテムを取得する関数</param>
         /// <param name="getFilteredWorldObjects">フィルターされたワールドオブジェクトを取得する関数</param>
+        /// <param name="getFilteredOthers">フィルターされたその他のアイテムを取得する関数</param>
         /// <returns>現在のタブのアイテム数</returns>
         public int GetCurrentTabItemCount(
             Func<List<object>> getFilteredAvatars,
             Func<List<object>> getFilteredItems,
-            Func<List<object>> getFilteredWorldObjects
+            Func<List<object>> getFilteredWorldObjects,
+            Func<List<object>> getFilteredOthers
         ) =>
-            GetCurrentTabItems(getFilteredAvatars, getFilteredItems, getFilteredWorldObjects).Count;
+            GetCurrentTabItems(
+                getFilteredAvatars,
+                getFilteredItems,
+                getFilteredWorldObjects,
+                getFilteredOthers
+            ).Count;
 
         /// <summary>
         /// 現在のタブのアイテムを取得
@@ -112,17 +119,20 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <param name="getFilteredAvatars">フィルターされたアバターを取得する関数</param>
         /// <param name="getFilteredItems">フィルターされたアイテムを取得する関数</param>
         /// <param name="getFilteredWorldObjects">フィルターされたワールドオブジェクトを取得する関数</param>
+        /// <param name="getFilteredOthers">フィルターされたその他のアイテムを取得する関数</param>
         /// <returns>現在のタブのアイテムリスト</returns>
         public List<object> GetCurrentTabItems(
             Func<List<object>> getFilteredAvatars,
             Func<List<object>> getFilteredItems,
-            Func<List<object>> getFilteredWorldObjects
+            Func<List<object>> getFilteredWorldObjects,
+            Func<List<object>> getFilteredOthers
         ) =>
             _paginationInfo.SelectedTab switch
             {
                 0 => getFilteredAvatars(),
                 1 => getFilteredItems(),
                 2 => getFilteredWorldObjects(),
+                3 => getFilteredOthers(),
                 _ => new List<object>(),
             };
     }

@@ -63,8 +63,11 @@ namespace UnityEditorAssetBrowser.Views
         /// </summary>
         private void DrawPageInfo()
         {
-            var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
-                _paginationViewModel.SelectedTab
+            var currentItems = _paginationViewModel.GetCurrentTabItems(
+                () => _assetBrowserViewModel.GetFilteredAvatars(),
+                () => _assetBrowserViewModel.GetFilteredItems(),
+                () => _assetBrowserViewModel.GetFilteredWorldObjects(),
+                () => _assetBrowserViewModel.GetFilteredOthers()
             );
             int totalPages = _paginationViewModel.GetTotalPages(currentItems);
             GUILayout.Label($"ページ {_paginationViewModel.CurrentPage + 1} / {totalPages}");
@@ -77,8 +80,11 @@ namespace UnityEditorAssetBrowser.Views
         {
             if (GUILayout.Button("次へ", GUILayout.Width(100)))
             {
-                var currentItems = _assetBrowserViewModel.GetCurrentTabItems(
-                    _paginationViewModel.SelectedTab
+                var currentItems = _paginationViewModel.GetCurrentTabItems(
+                    () => _assetBrowserViewModel.GetFilteredAvatars(),
+                    () => _assetBrowserViewModel.GetFilteredItems(),
+                    () => _assetBrowserViewModel.GetFilteredWorldObjects(),
+                    () => _assetBrowserViewModel.GetFilteredOthers()
                 );
                 int totalPages = _paginationViewModel.GetTotalPages(currentItems);
                 _paginationViewModel.MoveToNextPage(totalPages);
