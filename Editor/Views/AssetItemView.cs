@@ -515,9 +515,27 @@ namespace UnityEditorAssetBrowser.Views
                 if (unityPackageFoldouts[itemName])
                 {
                     EditorGUI.indentLevel++;
-                    foreach (var package in unityPackages)
+                    for (int i = 0; i < unityPackages.Count(); i++)
                     {
-                        DrawUnityPackageItem(package);
+                        DrawUnityPackageItem(unityPackages.ElementAt(i));
+
+                        // 最後のアイテム以外の後に線を描画
+                        if (i < unityPackages.Count() - 1)
+                        {
+                            var lineRect = EditorGUILayout.GetControlRect(false, 1);
+                            // 色を循環させる（赤、青、緑、黄、紫、水色）
+                            Color[] colors = new Color[]
+                            {
+                                new Color(1f, 0f, 0f, 0.5f), // 赤
+                                new Color(0f, 0f, 1f, 0.5f), // 青
+                                new Color(0f, 1f, 0f, 0.5f), // 緑
+                                new Color(1f, 1f, 0f, 0.5f), // 黄
+                                new Color(1f, 0f, 1f, 0.5f), // 紫
+                                new Color(0f, 1f, 1f, 0.5f), // 水色
+                            };
+                            Color lineColor = colors[i % colors.Length];
+                            EditorGUI.DrawRect(lineRect, lineColor);
+                        }
                     }
                     EditorGUI.indentLevel--;
                 }
