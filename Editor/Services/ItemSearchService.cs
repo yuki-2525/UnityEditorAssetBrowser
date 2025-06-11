@@ -249,10 +249,13 @@ namespace UnityEditorAssetBrowser.Services
                 tags = wearableItem.description.tags;
             else if (item is KonoAssetWorldObjectItem worldItem)
                 tags = worldItem.description.tags;
+            else if (item is KonoAssetOtherAssetItem otherItem)
+                tags = otherItem.description.tags;
 
-            if (tags == null)
+            if (tags == null || tags.Length == 0)
                 return false;
 
+            // すべてのキーワードが少なくとも1つのタグに含まれていることを確認
             return keywords.All(keyword =>
                 tags.Any(tag => tag.Contains(keyword, StringComparison.InvariantCultureIgnoreCase))
             );
@@ -267,10 +270,10 @@ namespace UnityEditorAssetBrowser.Services
         private bool IsMemoMatch(object item, string[] keywords)
         {
             string memo = GetMemo(item);
-
             if (string.IsNullOrEmpty(memo))
                 return false;
 
+            // すべてのキーワードがメモに含まれていることを確認
             return keywords.All(keyword =>
                 memo.Contains(keyword, StringComparison.InvariantCultureIgnoreCase)
             );

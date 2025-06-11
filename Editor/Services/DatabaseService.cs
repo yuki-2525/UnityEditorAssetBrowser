@@ -63,6 +63,11 @@ namespace UnityEditorAssetBrowser.Services
         /// </summary>
         private static KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase;
 
+        /// <summary>
+        /// KonoAssetのその他アセットデータベース
+        /// </summary>
+        private static KonoAssetOtherAssetsDatabase? kaOtherAssetsDatabase;
+
         private static AssetBrowserViewModel? _assetBrowserViewModel;
         private static SearchViewModel? _searchViewModel;
         private static PaginationViewModel? _paginationViewModel;
@@ -149,6 +154,7 @@ namespace UnityEditorAssetBrowser.Services
             kaAvatarsDatabase = result.avatarsDatabase;
             kaWearablesDatabase = result.wearablesDatabase;
             kaWorldObjectsDatabase = result.worldObjectsDatabase;
+            kaOtherAssetsDatabase = result.otherAssetsDatabase;
         }
 
         /// <summary>
@@ -243,5 +249,12 @@ namespace UnityEditorAssetBrowser.Services
         /// <returns>データベース（存在しない場合はnull）</returns>
         public static KonoAssetWorldObjectsDatabase? GetKAWorldObjectsDatabase() =>
             kaWorldObjectsDatabase;
+
+        /// <summary>
+        /// KonoAssetその他アセットデータベースを取得する
+        /// </summary>
+        /// <returns>データベース（存在しない場合はnull）</returns>
+        public static KonoAssetOtherAssetsDatabase? GetKAOtherAssetsDatabase() =>
+            kaOtherAssetsDatabase;
     }
 }

@@ -191,6 +191,44 @@ namespace UnityEditorAssetBrowser.Views
         }
 
         /// <summary>
+        /// KAその他アセットアイテムの表示
+        /// </summary>
+        /// <param name="item">表示するアイテム</param>
+        public void ShowKonoAssetOtherAssetItem(KonoAssetOtherAssetItem item)
+        {
+            GUILayout.BeginVertical(EditorStyles.helpBox);
+            var itemPath = Path.GetFullPath(
+                Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
+            );
+
+            // Unix時間をDateTimeに変換
+            DateTime? createdDate = null;
+
+            if (item.description.createdAt > 0)
+            {
+                createdDate = DateTimeOffset
+                    .FromUnixTimeMilliseconds(item.description.createdAt)
+                    .DateTime;
+            }
+
+            DrawItemHeader(
+                item.description.name,
+                item.description.creator,
+                item.description.imageFilename,
+                itemPath,
+                createdDate,
+                item.category,
+                null,
+                item.description.tags,
+                item.description.memo,
+                true,
+                false
+            );
+            DrawUnityPackageSection(itemPath, item.description.name);
+            GUILayout.EndVertical();
+        }
+
+        /// <summary>
         /// アイテムヘッダーの描画
         /// </summary>
         /// <param name="title">タイトル</param>

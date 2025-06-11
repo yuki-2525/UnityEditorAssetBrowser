@@ -33,6 +33,7 @@ namespace UnityEditorAssetBrowser.Models
         private bool _showAvatars = true;
         private bool _showWearables = true;
         private bool _showWorldObjects = true;
+        private bool _showOtherAssets = true;
 
         // ページネーション
         private int _currentPage = 1;
@@ -154,6 +155,15 @@ namespace UnityEditorAssetBrowser.Models
         }
 
         /// <summary>
+        /// その他アセットアイテムの表示/非表示
+        /// </summary>
+        public bool ShowOtherAssets
+        {
+            get => _showOtherAssets;
+            set => _showOtherAssets = value;
+        }
+
+        /// <summary>
         /// 現在のページ番号（1から開始）
         /// </summary>
         public int CurrentPage
@@ -234,6 +244,7 @@ namespace UnityEditorAssetBrowser.Models
                 { "Avatars", ShowAvatars },
                 { "Wearables", ShowWearables },
                 { "WorldObjects", ShowWorldObjects },
+                { "OtherAssets", ShowOtherAssets },
             };
 
         /// <summary>
@@ -253,6 +264,7 @@ namespace UnityEditorAssetBrowser.Models
             ShowAvatars = true;
             ShowWearables = true;
             ShowWorldObjects = true;
+            ShowOtherAssets = true;
             CurrentPage = 1;
         }
 
@@ -293,6 +305,7 @@ namespace UnityEditorAssetBrowser.Models
                 ShowAvatars = this.ShowAvatars,
                 ShowWearables = this.ShowWearables,
                 ShowWorldObjects = this.ShowWorldObjects,
+                ShowOtherAssets = this.ShowOtherAssets,
                 CurrentPage = this.CurrentPage,
                 ItemsPerPage = this.ItemsPerPage,
             };

@@ -38,6 +38,11 @@ namespace UnityEditorAssetBrowser.Helper
             /// ワールドオブジェクトデータベース
             /// </summary>
             public KonoAssetWorldObjectsDatabase? worldObjectsDatabase;
+
+            /// <summary>
+            /// その他アセットデータベース
+            /// </summary>
+            public KonoAssetOtherAssetsDatabase? otherAssetsDatabase;
         }
 
         /// <summary>
@@ -77,6 +82,15 @@ namespace UnityEditorAssetBrowser.Helper
                     var json = File.ReadAllText(worldObjectsPath);
                     result.worldObjectsDatabase =
                         JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(json);
+                }
+
+                // otherAssets.jsonの読み込み
+                var otherAssetsPath = Path.Combine(metadataPath, "otherAssets.json");
+                if (File.Exists(otherAssetsPath))
+                {
+                    var json = File.ReadAllText(otherAssetsPath);
+                    result.otherAssetsDatabase =
+                        JsonConvert.DeserializeObject<KonoAssetOtherAssetsDatabase>(json);
                 }
             }
             catch (Exception ex)

@@ -70,7 +70,7 @@ namespace UnityEditorAssetBrowser
         private bool showAdvancedSearch => _searchViewModel.SearchCriteria.ShowAdvancedSearch;
 
         /// <summary>タブのラベル</summary>
-        private readonly string[] tabs = { "アバター", "アバター関連", "ワールド" };
+        private readonly string[] tabs = { "アバター", "アバター関連", "ワールド", "その他" };
 
         /// <summary>フォールドアウト状態の管理</summary>
         private readonly Dictionary<string, bool> foldouts = new();
@@ -139,6 +139,7 @@ namespace UnityEditorAssetBrowser
                 DatabaseService.GetKAAvatarsDatabase(),
                 DatabaseService.GetKAWearablesDatabase(),
                 DatabaseService.GetKAWorldObjectsDatabase(),
+                DatabaseService.GetKAOtherAssetsDatabase(),
                 _paginationInfo,
                 _searchViewModel
             );

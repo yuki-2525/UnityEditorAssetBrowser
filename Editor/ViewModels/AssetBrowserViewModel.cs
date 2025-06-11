@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using UnityEditor;
+using UnityEditorAssetBrowser.Helper;
 using UnityEditorAssetBrowser.Models;
 using UnityEditorAssetBrowser.Services;
 using UnityEngine;
@@ -33,6 +34,7 @@ namespace UnityEditorAssetBrowser.ViewModels
         private KonoAssetAvatarsDatabase? _kaAvatarsDatabase;
         private KonoAssetWearablesDatabase? _kaWearablesDatabase;
         private KonoAssetWorldObjectsDatabase? _kaWorldObjectsDatabase;
+        private KonoAssetOtherAssetsDatabase? _kaOtherAssetsDatabase;
         private readonly PaginationInfo _paginationInfo;
         private SortMethod _currentSortMethod = SortMethod.CreatedDateDesc;
         private readonly SearchViewModel _searchViewModel;
@@ -47,6 +49,7 @@ namespace UnityEditorAssetBrowser.ViewModels
             KonoAssetAvatarsDatabase? kaAvatarsDatabase,
             KonoAssetWearablesDatabase? kaWearablesDatabase,
             KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase,
+            KonoAssetOtherAssetsDatabase? kaOtherAssetsDatabase,
             PaginationInfo paginationInfo,
             SearchViewModel searchViewModel
         )
@@ -55,6 +58,7 @@ namespace UnityEditorAssetBrowser.ViewModels
             _kaAvatarsDatabase = kaAvatarsDatabase;
             _kaWearablesDatabase = kaWearablesDatabase;
             _kaWorldObjectsDatabase = kaWorldObjectsDatabase;
+            _kaOtherAssetsDatabase = kaOtherAssetsDatabase;
             _paginationInfo = paginationInfo;
             _searchViewModel = searchViewModel;
             _currentSortMethod = SortMethod.CreatedDateDesc; // デフォルト値を設定
@@ -241,6 +245,12 @@ namespace UnityEditorAssetBrowser.ViewModels
                 }
             }
 
+            // KAのその他アセットを追加
+            if (_kaOtherAssetsDatabase?.data != null)
+            {
+                items.AddRange(_kaOtherAssetsDatabase.data);
+            }
+
             return SortItems(items.Where(_searchViewModel.IsItemMatchSearch).ToList());
         }
 
@@ -282,14 +292,20 @@ namespace UnityEditorAssetBrowser.ViewModels
             {
                 await Task.Run(() =>
                 {
-                    var (newAeDb, newKaAvatarsDb, newKaWearablesDb, newKaWorldObjectsDb) =
-                        RefreshDatabases(aeDatabasePath, kaDatabasePath);
+                    var (
+                        newAeDb,
+                        newKaAvatarsDb,
+                        newKaWearablesDb,
+                        newKaWorldObjectsDb,
+                        newKaOtherAssetsDb
+                    ) = RefreshDatabases(aeDatabasePath, kaDatabasePath);
 
                     // 内部状態の更新
                     _aeDatabase = newAeDb;
                     _kaAvatarsDatabase = newKaAvatarsDb;
                     _kaWearablesDatabase = newKaWearablesDb;
                     _kaWorldObjectsDatabase = newKaWorldObjectsDb;
+                    _kaOtherAssetsDatabase = newKaOtherAssetsDb;
                 });
 
                 // イベント通知
@@ -361,99 +377,23 @@ namespace UnityEditorAssetBrowser.ViewModels
             AvatarExplorerDatabase?,
             KonoAssetAvatarsDatabase?,
             KonoAssetWearablesDatabase?,
-            KonoAssetWorldObjectsDatabase?
+            KonoAssetWorldObjectsDatabase?,
+            KonoAssetOtherAssetsDatabase?
         ) RefreshDatabases(string aeDatabasePath, string kaDatabasePath)
         {
-            AvatarExplorerDatabase? newAeDatabase = null;
-            KonoAssetAvatarsDatabase? newKaAvatarsDatabase = null;
-            KonoAssetWearablesDatabase? newKaWearablesDatabase = null;
-            KonoAssetWorldObjectsDatabase? newKaWorldObjectsDatabase = null;
-
-            if (
-                !string.IsNullOrEmpty(aeDatabasePath)
-                && File.Exists(Path.Combine(aeDatabasePath, "database.json"))
-            )
-            {
-                try
-                {
-                    var json = File.ReadAllText(Path.Combine(aeDatabasePath, "database.json"));
-                    newAeDatabase =
-                        Newtonsoft.Json.JsonConvert.DeserializeObject<AvatarExplorerDatabase>(json);
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"AEデータベースの読み込みに失敗しました: {e.Message}");
-                }
-            }
-
-            if (!string.IsNullOrEmpty(kaDatabasePath))
-            {
-                // Avatars
-                var avatarsPath = Path.Combine(kaDatabasePath, "avatars.json");
-                if (File.Exists(avatarsPath))
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(avatarsPath);
-                        newKaAvatarsDatabase =
-                            Newtonsoft.Json.JsonConvert.DeserializeObject<KonoAssetAvatarsDatabase>(
-                                json
-                            );
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(
-                            $"KAアバターデータベースの読み込みに失敗しました: {e.Message}"
-                        );
-                    }
-                }
-
-                // Wearables
-                var wearablesPath = Path.Combine(kaDatabasePath, "wearables.json");
-                if (File.Exists(wearablesPath))
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(wearablesPath);
-                        newKaWearablesDatabase =
-                            Newtonsoft.Json.JsonConvert.DeserializeObject<KonoAssetWearablesDatabase>(
-                                json
-                            );
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(
-                            $"KAウェアラブルデータベースの読み込みに失敗しました: {e.Message}"
-                        );
-                    }
-                }
-
-                // World Objects
-                var worldObjectsPath = Path.Combine(kaDatabasePath, "world_objects.json");
-                if (File.Exists(worldObjectsPath))
-                {
-                    try
-                    {
-                        var json = File.ReadAllText(worldObjectsPath);
-                        newKaWorldObjectsDatabase =
-                            Newtonsoft.Json.JsonConvert.DeserializeObject<KonoAssetWorldObjectsDatabase>(
-                                json
-                            );
-                    }
-                    catch (Exception e)
-                    {
-                        Debug.LogError(
-                            $"KAワールドオブジェクトデータベースの読み込みに失敗しました: {e.Message}"
-                        );
-                    }
-                }
-            }
+            _aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
+            var result = KADatabaseHelper.LoadKADatabaseFiles(kaDatabasePath);
+            _kaAvatarsDatabase = result.avatarsDatabase;
+            _kaWearablesDatabase = result.wearablesDatabase;
+            _kaWorldObjectsDatabase = result.worldObjectsDatabase;
+            _kaOtherAssetsDatabase = result.otherAssetsDatabase;
 
             return (
-                newAeDatabase,
-                newKaAvatarsDatabase,
-                newKaWearablesDatabase,
-                newKaWorldObjectsDatabase
+                _aeDatabase,
+                _kaAvatarsDatabase,
+                _kaWearablesDatabase,
+                _kaWorldObjectsDatabase,
+                _kaOtherAssetsDatabase
             );
         }
 
@@ -653,17 +593,11 @@ namespace UnityEditorAssetBrowser.ViewModels
 
         public void LoadKADatabase(string path)
         {
-            if (string.IsNullOrEmpty(path))
-            {
-                ClearKADatabase();
-                return;
-            }
-
-            DatabaseService.SetKADatabasePath(path);
-            DatabaseService.LoadAndUpdateKADatabase();
-            _kaAvatarsDatabase = DatabaseService.GetKAAvatarsDatabase();
-            _kaWearablesDatabase = DatabaseService.GetKAWearablesDatabase();
-            _kaWorldObjectsDatabase = DatabaseService.GetKAWorldObjectsDatabase();
+            var result = KADatabaseHelper.LoadKADatabaseFiles(path);
+            _kaAvatarsDatabase = result.avatarsDatabase;
+            _kaWearablesDatabase = result.wearablesDatabase;
+            _kaWorldObjectsDatabase = result.worldObjectsDatabase;
+            _kaOtherAssetsDatabase = result.otherAssetsDatabase;
             DatabaseUpdated?.Invoke();
         }
 
@@ -678,6 +612,7 @@ namespace UnityEditorAssetBrowser.ViewModels
             _kaAvatarsDatabase = null;
             _kaWearablesDatabase = null;
             _kaWorldObjectsDatabase = null;
+            _kaOtherAssetsDatabase = null;
             DatabaseUpdated?.Invoke();
         }
 
