@@ -42,6 +42,10 @@ namespace UnityEditorAssetBrowser.Models
             {
                 return worldItem.category;
             }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return otherItem.category;
+            }
             return string.Empty;
         }
 
@@ -78,6 +82,10 @@ namespace UnityEditorAssetBrowser.Models
             {
                 return worldItem.description.name;
             }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return otherItem.description.name;
+            }
             return string.Empty;
         }
 
@@ -103,6 +111,10 @@ namespace UnityEditorAssetBrowser.Models
             else if (item is KonoAssetWorldObjectItem worldItem)
             {
                 return worldItem.description.creator;
+            }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return otherItem.description.creator;
             }
             return string.Empty;
         }
@@ -137,6 +149,10 @@ namespace UnityEditorAssetBrowser.Models
             {
                 return worldItem.description.createdAt;
             }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return otherItem.description.createdAt;
+            }
             return 0;
         }
 
@@ -162,6 +178,10 @@ namespace UnityEditorAssetBrowser.Models
             else if (item is KonoAssetWorldObjectItem worldItem)
             {
                 return worldItem.description.memo ?? string.Empty;
+            }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return otherItem.description.memo ?? string.Empty;
             }
             return string.Empty;
         }

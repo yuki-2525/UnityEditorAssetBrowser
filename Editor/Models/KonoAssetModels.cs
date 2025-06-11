@@ -72,6 +72,19 @@ namespace UnityEditorAssetBrowser.Models
         public new KonoAssetWorldObjectItem[] data { get; set; } =
             Array.Empty<KonoAssetWorldObjectItem>();
     }
+
+    /// <summary>
+    /// その他アセット用データベース
+    /// その他アセットアイテムのリストを管理する
+    /// </summary>
+    public class KonoAssetOtherAssetsDatabase : KonoAssetDatabase
+    {
+        /// <summary>
+        /// その他アセットアイテムのリスト
+        /// </summary>
+        public new KonoAssetOtherAssetItem[] data { get; set; } =
+            Array.Empty<KonoAssetOtherAssetItem>();
+    }
     #endregion
 
     #region Item Models
@@ -137,6 +150,28 @@ namespace UnityEditorAssetBrowser.Models
 
         /// <summary>
         /// オブジェクトのカテゴリー
+        /// </summary>
+        public string category { get; set; } = "";
+    }
+
+    /// <summary>
+    /// その他アセットアイテムモデル
+    /// その他アセットの情報を管理する
+    /// </summary>
+    public class KonoAssetOtherAssetItem
+    {
+        /// <summary>
+        /// アセットのID
+        /// </summary>
+        public string id { get; set; } = "";
+
+        /// <summary>
+        /// アセットの詳細情報
+        /// </summary>
+        public KonoAssetDescription description { get; set; } = new KonoAssetDescription();
+
+        /// <summary>
+        /// アセットのカテゴリー
         /// </summary>
         public string category { get; set; } = "";
     }

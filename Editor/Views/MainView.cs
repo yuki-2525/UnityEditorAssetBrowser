@@ -246,13 +246,29 @@ namespace UnityEditorAssetBrowser.Views
         private void ShowOthersContent()
         {
             var filteredItems = _assetBrowserViewModel.GetFilteredOthers();
-            var pageItems = _paginationViewModel.GetCurrentPageItems(filteredItems);
+            var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
+            var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
             foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    _assetItemView.ShowAvatarItem(aeItem, true, true);
+                    var category = aeItem.GetAECategoryName();
+                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
+
+                    // 設定されたアセットタイプに基づいて表示を決定
+                    if (EditorPrefs.HasKey(key))
+                    {
+                        var assetType = EditorPrefs.GetInt(key);
+                        if (assetType == 3) // その他
+                        {
+                            _assetItemView.ShowAvatarItem(aeItem, true, false);
+                        }
+                    }
+                }
+                else if (item is KonoAssetOtherAssetItem otherItem)
+                {
+                    _assetItemView.ShowKonoAssetOtherAssetItem(otherItem);
                 }
             }
         }
