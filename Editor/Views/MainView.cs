@@ -167,12 +167,12 @@ namespace UnityEditorAssetBrowser.Views
                     // アバターカテゴリのアイテムのみを表示
                     if (aeItem.GetAECategoryName() == "アバター")
                     {
-                        _assetItemView.ShowAvatarItem(aeItem, false, false);
+                        _assetItemView.ShowAvatarItem(aeItem);
                     }
                 }
                 else if (item is KonoAssetAvatarItem kaItem)
                 {
-                    _assetItemView.ShowKonoAssetItem(kaItem, false, false);
+                    _assetItemView.ShowKonoAssetItem(kaItem);
                 }
             }
         }
@@ -199,13 +199,13 @@ namespace UnityEditorAssetBrowser.Views
                         var assetType = EditorPrefs.GetInt(key);
                         if (assetType == 1) // アバター関連アセット
                         {
-                            _assetItemView.ShowAvatarItem(aeItem, true, true);
+                            _assetItemView.ShowAvatarItem(aeItem);
                         }
                     }
                 }
                 else if (item is KonoAssetWearableItem kaItem)
                 {
-                    _assetItemView.ShowKonoAssetWearableItem(kaItem, true);
+                    _assetItemView.ShowKonoAssetWearableItem(kaItem);
                 }
             }
         }
@@ -230,7 +230,7 @@ namespace UnityEditorAssetBrowser.Views
                     var assetType = EditorPrefs.GetInt(key);
                     if (assetType == 2) // ワールドアセット
                     {
-                        _assetItemView.ShowAvatarItem(aeItem, true, false);
+                        _assetItemView.ShowAvatarItem(aeItem);
                     }
                 }
                 else if (item is KonoAssetWorldObjectItem worldItem)
@@ -262,7 +262,7 @@ namespace UnityEditorAssetBrowser.Views
                         var assetType = EditorPrefs.GetInt(key);
                         if (assetType == 3) // その他
                         {
-                            _assetItemView.ShowAvatarItem(aeItem, true, false);
+                            _assetItemView.ShowAvatarItem(aeItem);
                         }
                     }
                 }

@@ -125,6 +125,24 @@ namespace UnityEditorAssetBrowser.Views
                             AssetBrowserViewModel.SortMethod.AuthorDesc
                         )
                 );
+                menu.AddItem(
+                    new GUIContent("BOOTHID順（新しい順）"),
+                    _assetBrowserViewModel.CurrentSortMethod
+                        == AssetBrowserViewModel.SortMethod.BoothIdDesc,
+                    () =>
+                        _assetBrowserViewModel.SetSortMethod(
+                            AssetBrowserViewModel.SortMethod.BoothIdDesc
+                        )
+                );
+                menu.AddItem(
+                    new GUIContent("BOOTHID順（古い順）"),
+                    _assetBrowserViewModel.CurrentSortMethod
+                        == AssetBrowserViewModel.SortMethod.BoothIdAsc,
+                    () =>
+                        _assetBrowserViewModel.SetSortMethod(
+                            AssetBrowserViewModel.SortMethod.BoothIdAsc
+                        )
+                );
                 menu.ShowAsContext();
             }
             EditorGUILayout.EndHorizontal();
@@ -259,6 +277,7 @@ namespace UnityEditorAssetBrowser.Views
                 // データベースを更新
                 DatabaseService.LoadAEDatabase();
                 DatabaseService.LoadKADatabase();
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
             EditorGUILayout.EndHorizontal();
 

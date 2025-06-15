@@ -37,8 +37,17 @@ namespace UnityEditorAssetBrowser.Helper
                     jsonPath = Path.Combine(path, "ItemsData.json");
                     if (!File.Exists(jsonPath))
                     {
-                        Debug.LogWarning($"AE database file not found at: {jsonPath}");
-                        return null;
+                        // Datasフォルダ内も探す
+                        var datasJsonPath = Path.Combine(path, "Datas", "ItemsData.json");
+                        if (File.Exists(datasJsonPath))
+                        {
+                            jsonPath = datasJsonPath;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"AE database file not found");
+                            return null;
+                        }
                     }
                 }
                 else
