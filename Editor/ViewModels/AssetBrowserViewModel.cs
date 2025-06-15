@@ -26,7 +26,6 @@ namespace UnityEditorAssetBrowser.ViewModels
     public class AssetBrowserViewModel
     {
         // イベント定義
-        public event Action? DatabaseUpdated;
         public event Action? SortMethodChanged;
         public event Action<string>? ErrorOccurred;
 
@@ -281,45 +280,6 @@ namespace UnityEditorAssetBrowser.ViewModels
         }
 
         /// <summary>
-        /// データベースを更新する
-        /// </summary>
-        /// <param name="aeDatabasePath">AEデータベースのパス</param>
-        /// <param name="kaDatabasePath">KAデータベースのパス</param>
-        /// <returns>更新が成功したかどうか</returns>
-        public async Task<bool> UpdateDatabases(string aeDatabasePath, string kaDatabasePath)
-        {
-            try
-            {
-                await Task.Run(() =>
-                {
-                    var (
-                        newAeDb,
-                        newKaAvatarsDb,
-                        newKaWearablesDb,
-                        newKaWorldObjectsDb,
-                        newKaOtherAssetsDb
-                    ) = RefreshDatabases(aeDatabasePath, kaDatabasePath);
-
-                    // 内部状態の更新
-                    _aeDatabase = newAeDb;
-                    _kaAvatarsDatabase = newKaAvatarsDb;
-                    _kaWearablesDatabase = newKaWearablesDb;
-                    _kaWorldObjectsDatabase = newKaWorldObjectsDb;
-                    _kaOtherAssetsDatabase = newKaOtherAssetsDb;
-                });
-
-                // イベント通知
-                DatabaseUpdated?.Invoke();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                HandleError($"データベースの更新に失敗しました: {ex.Message}");
-                return false;
-            }
-        }
-
-        /// <summary>
         /// ソート方法を設定する
         /// </summary>
         /// <param name="method">設定するソート方法</param>
@@ -365,36 +325,6 @@ namespace UnityEditorAssetBrowser.ViewModels
             _lastError = message;
             ErrorOccurred?.Invoke(message);
             Debug.LogError(message);
-        }
-
-        /// <summary>
-        /// データベースを再読み込みする
-        /// </summary>
-        /// <param name="aeDatabasePath">AEデータベースのパス</param>
-        /// <param name="kaDatabasePath">KAデータベースのパス</param>
-        /// <returns>再読み込みが成功したかどうか</returns>
-        public (
-            AvatarExplorerDatabase?,
-            KonoAssetAvatarsDatabase?,
-            KonoAssetWearablesDatabase?,
-            KonoAssetWorldObjectsDatabase?,
-            KonoAssetOtherAssetsDatabase?
-        ) RefreshDatabases(string aeDatabasePath, string kaDatabasePath)
-        {
-            _aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
-            var result = KADatabaseHelper.LoadKADatabaseFiles(kaDatabasePath);
-            _kaAvatarsDatabase = result.avatarsDatabase;
-            _kaWearablesDatabase = result.wearablesDatabase;
-            _kaWorldObjectsDatabase = result.worldObjectsDatabase;
-            _kaOtherAssetsDatabase = result.otherAssetsDatabase;
-
-            return (
-                _aeDatabase,
-                _kaAvatarsDatabase,
-                _kaWearablesDatabase,
-                _kaWorldObjectsDatabase,
-                _kaOtherAssetsDatabase
-            );
         }
 
         /// <summary>
@@ -575,45 +505,6 @@ namespace UnityEditorAssetBrowser.ViewModels
             return File.Exists(fullImagePath)
                 ? ImageServices.Instance.LoadTexture(fullImagePath)
                 : null;
-        }
-
-        public void LoadAEDatabase(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-            {
-                ClearAEDatabase();
-                return;
-            }
-
-            DatabaseService.SetAEDatabasePath(path);
-            DatabaseService.LoadAndUpdateAEDatabase();
-            _aeDatabase = DatabaseService.GetAEDatabase();
-            DatabaseUpdated?.Invoke();
-        }
-
-        public void LoadKADatabase(string path)
-        {
-            var result = KADatabaseHelper.LoadKADatabaseFiles(path);
-            _kaAvatarsDatabase = result.avatarsDatabase;
-            _kaWearablesDatabase = result.wearablesDatabase;
-            _kaWorldObjectsDatabase = result.worldObjectsDatabase;
-            _kaOtherAssetsDatabase = result.otherAssetsDatabase;
-            DatabaseUpdated?.Invoke();
-        }
-
-        public void ClearAEDatabase()
-        {
-            _aeDatabase = null;
-            DatabaseUpdated?.Invoke();
-        }
-
-        public void ClearKADatabase()
-        {
-            _kaAvatarsDatabase = null;
-            _kaWearablesDatabase = null;
-            _kaWorldObjectsDatabase = null;
-            _kaOtherAssetsDatabase = null;
-            DatabaseUpdated?.Invoke();
         }
 
         /// <summary>

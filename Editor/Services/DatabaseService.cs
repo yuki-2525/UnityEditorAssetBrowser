@@ -179,7 +179,7 @@ namespace UnityEditorAssetBrowser.Services
                 && _paginationViewModel != null
             )
             {
-                _assetBrowserViewModel.LoadAEDatabase(path);
+                LoadAEDatabase();
                 _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
         }
@@ -196,7 +196,7 @@ namespace UnityEditorAssetBrowser.Services
                 && _paginationViewModel != null
             )
             {
-                _assetBrowserViewModel.LoadKADatabase(path);
+                LoadKADatabase();
                 _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
         }
@@ -256,5 +256,59 @@ namespace UnityEditorAssetBrowser.Services
         /// <returns>データベース（存在しない場合はnull）</returns>
         public static KonoAssetOtherAssetsDatabase? GetKAOtherAssetsDatabase() =>
             kaOtherAssetsDatabase;
+
+        /// <summary>
+        /// AvatarExplorerデータベースを読み込む
+        /// </summary>
+        /// <param name="path">データベースのパス</param>
+        public static void LoadAEDatabase()
+        {
+            if (string.IsNullOrEmpty(aeDatabasePath))
+            {
+                ClearAEDatabase();
+                return;
+            }
+
+            LoadAndUpdateAEDatabase();
+            aeDatabase = GetAEDatabase();
+        }
+
+        /// <summary>
+        /// KonoAssetデータベースを読み込む
+        /// </summary>
+        /// <param name="path">データベースのパス</param>
+        public static void LoadKADatabase()
+        {
+            if (string.IsNullOrEmpty(kaDatabasePath))
+            {
+                ClearKADatabase();
+                return;
+            }
+
+            LoadAndUpdateKADatabase();
+            kaAvatarsDatabase = GetKAAvatarsDatabase();
+            kaWearablesDatabase = GetKAWearablesDatabase();
+            kaWorldObjectsDatabase = GetKAWorldObjectsDatabase();
+            kaOtherAssetsDatabase = GetKAOtherAssetsDatabase();
+        }
+
+        /// <summary>
+        /// AvatarExplorerデータベースをクリアする
+        /// </summary>
+        public static void ClearAEDatabase()
+        {
+            aeDatabase = null;
+        }
+
+        /// <summary>
+        /// KonoAssetデータベースをクリアする
+        /// </summary>
+        public static void ClearKADatabase()
+        {
+            kaAvatarsDatabase = null;
+            kaWearablesDatabase = null;
+            kaWorldObjectsDatabase = null;
+            kaOtherAssetsDatabase = null;
+        }
     }
 }
