@@ -278,5 +278,10 @@ namespace UnityEditorAssetBrowser.Services
                 memo.Contains(keyword, StringComparison.InvariantCultureIgnoreCase)
             );
         }
+
+        public bool IsDatabaseNull()
+        {
+            return aeDatabase == null;
+        }
     }
 }

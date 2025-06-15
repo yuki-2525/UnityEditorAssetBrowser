@@ -202,8 +202,8 @@ namespace UnityEditorAssetBrowser
             ImageServices.Instance.ClearCache();
 
             // データベースを再読み込み
-            _assetBrowserViewModel.LoadAEDatabase(aeDatabasePath);
-            _assetBrowserViewModel.LoadKADatabase(kaDatabasePath);
+            DatabaseService.LoadAEDatabase();
+            DatabaseService.LoadKADatabase();
             _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
 
             // 現在表示中のアイテムの画像を再読み込み

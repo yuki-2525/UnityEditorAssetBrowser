@@ -257,9 +257,8 @@ namespace UnityEditorAssetBrowser.Views
             if (GUILayout.Button("更新", GUILayout.Width(100)))
             {
                 // データベースを更新
-                _assetBrowserViewModel.LoadAEDatabase(DatabaseService.GetAEDatabasePath());
-                _assetBrowserViewModel.LoadKADatabase(DatabaseService.GetKADatabasePath());
-                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+                DatabaseService.LoadAEDatabase();
+                DatabaseService.LoadKADatabase();
             }
             EditorGUILayout.EndHorizontal();
 
