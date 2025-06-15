@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor;
+using UnityEditorAssetBrowser.Services;
 using UnityEditorAssetBrowser.Views;
 using UnityEngine;
 
@@ -164,15 +165,36 @@ namespace UnityEditorAssetBrowser.Services
                 return;
             }
 
-            // 中間フォルダのみをフィルタリング（例：Assets/folder1/folder2）
+            // 保存先決定ロジック（除外フォルダが含まれる場合の特別処理）
             var targetFolders = new HashSet<string>();
-            foreach (var folder in folders)
+            var excluded = folders
+                .Where(f => ExcludeFolderService.IsExcludedFolder(f.Split('/').Last()))
+                .ToList();
+            if (excluded.Any())
             {
-                string[] parts = folder.Split('/');
-                // パスの深さが3（Assets/folder1/folder2）の場合のみ対象とする
-                if (parts.Length == 3 && parts[0] == "Assets")
+                // 最も浅い除外フォルダの1つ上のフォルダを保存先とする
+                var shallowest = excluded.OrderBy(f => f.Count(c => c == '/')).First();
+                var parts = shallowest.Split('/');
+                if (parts.Length > 1)
                 {
-                    targetFolders.Add(folder);
+                    string parent = string.Join("/", parts.Take(parts.Length - 1));
+                    // Assets直下のFolderIcon.jpgは絶対に保存しない
+                    if (!string.IsNullOrEmpty(parent) && !IsRootFolderIcon(parent))
+                        targetFolders.Add(parent);
+                }
+                // それより下の階層の新規フォルダは無視
+            }
+            else
+            {
+                // 除外フォルダがなければ従来通り
+                foreach (var folder in folders)
+                {
+                    string bestFolder = FindBestThumbnailFolder(folder);
+                    // Assets直下のFolderIcon.jpgは絶対に保存しない
+                    if (!string.IsNullOrEmpty(bestFolder) && !IsRootFolderIcon(bestFolder))
+                    {
+                        targetFolders.Add(bestFolder);
+                    }
                 }
             }
 
@@ -198,11 +220,67 @@ namespace UnityEditorAssetBrowser.Services
                 }
             }
 
+            // 最適なサムネイル保存先を決定する
+            static string FindBestThumbnailFolder(string folder)
+            {
+                string[] parts = folder.Split('/');
+                // 除外フォルダがパスに含まれる場合は、最初の除外フォルダの1つ上を返す
+                for (int i = 1; i < parts.Length; i++)
+                {
+                    if (ExcludeFolderService.IsExcludedFolder(parts[i]))
+                    {
+                        return string.Join("/", parts.Take(i));
+                    }
+                }
+                // 再帰的に最適な深さを探す
+                string current = folder;
+                while (true)
+                {
+                    var dirs = Directory.GetDirectories(current).ToList();
+                    var files = Directory
+                        .GetFiles(current)
+                        .Where(f => Path.GetExtension(f) != ".meta")
+                        .ToList();
+                    // フォルダが1つだけ、かつ除外フォルダでなく、ファイルが無い場合はさらに深く
+                    if (
+                        dirs.Count == 1
+                        && !ExcludeFolderService.IsExcludedFolder(Path.GetFileName(dirs[0]))
+                        && files.Count == 0
+                    )
+                    {
+                        current = dirs[0];
+                        continue;
+                    }
+                    break;
+                }
+                return current;
+            }
+
             // アセットデータベースを更新して表示を更新
             AssetDatabase.Refresh();
         }
 
         // importPackageCompleted 用の一時ハンドラ
         private static AssetDatabase.ImportPackageCallback? _importCompletedHandler;
+
+        /// <summary>
+        /// 指定したパスがAssets直下のFolderIcon.jpgか判定する
+        /// 例: Assets/FolderIcon.jpg → true, Assets/Folder1/FolderIcon.jpg → false
+        /// </summary>
+        /// <param name="folderPath">判定するフォルダパス</param>
+        /// <returns>Assets直下のFolderIcon.jpgならtrue</returns>
+        private static bool IsRootFolderIcon(string folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath))
+                return false;
+            var parts = folderPath.Split('/');
+            return parts.Length == 2 && parts[0] == "Assets" && parts[1] == "FolderIcon.jpg";
+        }
+
+        [Serializable]
+        private class ExcludeFoldersData
+        {
+            public List<string> folders = new List<string>();
+        }
     }
 }

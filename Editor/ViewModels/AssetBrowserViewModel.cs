@@ -90,6 +90,12 @@ namespace UnityEditorAssetBrowser.ViewModels
 
             /// <summary>ショップ名（Z-A順）</summary>
             AuthorDesc,
+
+            /// <summary>BOOTHID順（新しい順、大→小）</summary>
+            BoothIdDesc,
+
+            /// <summary>BOOTHID順（古い順、小→大）</summary>
+            BoothIdAsc,
         }
 
         /// <summary>
@@ -274,6 +280,12 @@ namespace UnityEditorAssetBrowser.ViewModels
                     return items.OrderBy(item => GetAuthor(item)).ToList();
                 case SortMethod.AuthorDesc:
                     return items.OrderByDescending(item => GetAuthor(item)).ToList();
+                case SortMethod.BoothIdDesc:
+                    return items
+                        .OrderByDescending(item => new AssetItem().GetBoothItemId(item))
+                        .ToList();
+                case SortMethod.BoothIdAsc:
+                    return items.OrderBy(item => new AssetItem().GetBoothItemId(item)).ToList();
                 default:
                     return items;
             }

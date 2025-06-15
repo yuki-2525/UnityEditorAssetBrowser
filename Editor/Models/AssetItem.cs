@@ -196,5 +196,55 @@ namespace UnityEditorAssetBrowser.Models
             return category.Contains(WORLD_CATEGORY_JP, StringComparison.OrdinalIgnoreCase)
                 || category.Contains(WORLD_CATEGORY_EN, StringComparison.OrdinalIgnoreCase);
         }
+
+        /// <summary>
+        /// アイテムのBooth Item IDを取得
+        /// </summary>
+        /// <param name="item">Booth IDを取得するアイテム</param>
+        /// <returns>Booth Item ID。取得できない場合や0以下/nullの場合は0</returns>
+        public int GetBoothItemId(object item)
+        {
+            if (item is AvatarExplorerItem aeItem)
+            {
+                return (aeItem.BoothId > 0) ? aeItem.BoothId : 0;
+            }
+            else if (item is KonoAssetAvatarItem kaItem)
+            {
+                return (
+                    kaItem.description.boothItemId.HasValue
+                    && kaItem.description.boothItemId.Value > 0
+                )
+                    ? kaItem.description.boothItemId.Value
+                    : 0;
+            }
+            else if (item is KonoAssetWearableItem wearableItem)
+            {
+                return (
+                    wearableItem.description.boothItemId.HasValue
+                    && wearableItem.description.boothItemId.Value > 0
+                )
+                    ? wearableItem.description.boothItemId.Value
+                    : 0;
+            }
+            else if (item is KonoAssetWorldObjectItem worldItem)
+            {
+                return (
+                    worldItem.description.boothItemId.HasValue
+                    && worldItem.description.boothItemId.Value > 0
+                )
+                    ? worldItem.description.boothItemId.Value
+                    : 0;
+            }
+            else if (item is KonoAssetOtherAssetItem otherItem)
+            {
+                return (
+                    otherItem.description.boothItemId.HasValue
+                    && otherItem.description.boothItemId.Value > 0
+                )
+                    ? otherItem.description.boothItemId.Value
+                    : 0;
+            }
+            return 0;
+        }
     }
 }

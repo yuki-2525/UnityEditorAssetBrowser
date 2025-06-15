@@ -27,6 +27,8 @@ namespace UnityEditorAssetBrowser.Views
         /// <summary>UnityPackageのフォールドアウト状態</summary>
         private readonly Dictionary<string, bool> unityPackageFoldouts = new();
 
+        private readonly AssetItem assetItemHelper = new AssetItem();
+
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -63,15 +65,10 @@ namespace UnityEditorAssetBrowser.Views
         /// AEアバターアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        /// <param name="showCategory">カテゴリを表示するかどうか</param>
-        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
-        public void ShowAvatarItem(
-            AvatarExplorerItem item,
-            bool showCategory,
-            bool showSupportedAvatars = false
-        )
+        public void ShowAvatarItem(AvatarExplorerItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
+            int boothItemId = assetItemHelper.GetBoothItemId(item);
             DrawItemHeader(
                 item.Title,
                 item.AuthorName,
@@ -82,8 +79,7 @@ namespace UnityEditorAssetBrowser.Views
                 item.SupportedAvatars,
                 item.Tags,
                 item.Memo,
-                showCategory,
-                showSupportedAvatars
+                boothItemId
             );
             DrawUnityPackageSection(item.ItemPath, item.Title, item.ImagePath);
             GUILayout.EndVertical();
@@ -93,29 +89,20 @@ namespace UnityEditorAssetBrowser.Views
         /// KAアバターアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        /// <param name="showCategory">カテゴリを表示するかどうか</param>
-        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
-        public void ShowKonoAssetItem(
-            KonoAssetAvatarItem item,
-            bool showCategory,
-            bool showSupportedAvatars = false
-        )
+        public void ShowKonoAssetItem(KonoAssetAvatarItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             var itemPath = Path.GetFullPath(
                 Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
             );
-
-            // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
-
             if (item.description.createdAt > 0)
             {
                 createdDate = DateTimeOffset
                     .FromUnixTimeMilliseconds(item.description.createdAt)
                     .DateTime;
             }
-
+            int boothItemId = assetItemHelper.GetBoothItemId(item);
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
@@ -126,8 +113,7 @@ namespace UnityEditorAssetBrowser.Views
                 null,
                 item.description.tags,
                 item.description.memo,
-                showCategory,
-                showSupportedAvatars
+                boothItemId
             );
             DrawUnityPackageSection(
                 itemPath,
@@ -141,27 +127,20 @@ namespace UnityEditorAssetBrowser.Views
         /// KAウェアラブルアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
-        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
-        public void ShowKonoAssetWearableItem(
-            KonoAssetWearableItem item,
-            bool showSupportedAvatars = false
-        )
+        public void ShowKonoAssetWearableItem(KonoAssetWearableItem item)
         {
             GUILayout.BeginVertical(EditorStyles.helpBox);
             var itemPath = Path.GetFullPath(
                 Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
             );
-
-            // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
-
             if (item.description.createdAt > 0)
             {
                 createdDate = DateTimeOffset
                     .FromUnixTimeMilliseconds(item.description.createdAt)
                     .DateTime;
             }
-
+            int boothItemId = assetItemHelper.GetBoothItemId(item);
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
@@ -172,8 +151,7 @@ namespace UnityEditorAssetBrowser.Views
                 item.supportedAvatars,
                 item.description.tags,
                 item.description.memo,
-                true,
-                showSupportedAvatars
+                boothItemId
             );
             DrawUnityPackageSection(
                 itemPath,
@@ -193,17 +171,14 @@ namespace UnityEditorAssetBrowser.Views
             var itemPath = Path.GetFullPath(
                 Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
             );
-
-            // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
-
             if (item.description.createdAt > 0)
             {
                 createdDate = DateTimeOffset
                     .FromUnixTimeMilliseconds(item.description.createdAt)
                     .DateTime;
             }
-
+            int boothItemId = assetItemHelper.GetBoothItemId(item);
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
@@ -214,8 +189,7 @@ namespace UnityEditorAssetBrowser.Views
                 null,
                 item.description.tags,
                 item.description.memo,
-                true,
-                false
+                boothItemId
             );
             DrawUnityPackageSection(
                 itemPath,
@@ -235,17 +209,14 @@ namespace UnityEditorAssetBrowser.Views
             var itemPath = Path.GetFullPath(
                 Path.Combine(DatabaseService.GetKADatabasePath(), "data", item.id)
             );
-
-            // Unix時間をDateTimeに変換
             DateTime? createdDate = null;
-
             if (item.description.createdAt > 0)
             {
                 createdDate = DateTimeOffset
                     .FromUnixTimeMilliseconds(item.description.createdAt)
                     .DateTime;
             }
-
+            int boothItemId = assetItemHelper.GetBoothItemId(item);
             DrawItemHeader(
                 item.description.name,
                 item.description.creator,
@@ -256,8 +227,7 @@ namespace UnityEditorAssetBrowser.Views
                 null,
                 item.description.tags,
                 item.description.memo,
-                true,
-                false
+                boothItemId
             );
             DrawUnityPackageSection(
                 itemPath,
@@ -279,8 +249,7 @@ namespace UnityEditorAssetBrowser.Views
         /// <param name="supportedAvatars">対応アバター</param>
         /// <param name="tags">タグ</param>
         /// <param name="memo">メモ</param>
-        /// <param name="showCategory">カテゴリを表示するかどうか</param>
-        /// <param name="showSupportedAvatars">対応アバターを表示するかどうか</param>
+        /// <param name="boothItemId">BoothアイテムID</param>
         private void DrawItemHeader(
             string title,
             string author,
@@ -291,8 +260,7 @@ namespace UnityEditorAssetBrowser.Views
             string[]? supportedAvatars = null,
             string[]? tags = null,
             string? memo = null,
-            bool showCategory = true,
-            bool showSupportedAvatars = false
+            int boothItemId = 0
         )
         {
             GUILayout.BeginHorizontal();
@@ -305,14 +273,14 @@ namespace UnityEditorAssetBrowser.Views
             // 作者名
             GUILayout.Label($"作者: {author}");
 
-            // カテゴリ（表示する場合）
-            if (showCategory && !string.IsNullOrEmpty(category))
+            // カテゴリ（categoryがnullや空でなければ表示）
+            if (!string.IsNullOrEmpty(category))
             {
                 DrawCategory(title, category);
             }
 
-            // 対応アバター（表示する場合）
-            if (showSupportedAvatars && supportedAvatars != null && supportedAvatars.Length > 0)
+            // 対応アバター（supportedAvatarsがnullや空でなければ表示）
+            if (supportedAvatars != null && supportedAvatars.Length > 0)
             {
                 DrawSupportedAvatars(supportedAvatars);
             }
@@ -330,7 +298,14 @@ namespace UnityEditorAssetBrowser.Views
             }
 
             EditorGUILayout.Space(5);
-            DrawOpenButton(itemPath);
+            DrawExplorerOpenButton(itemPath);
+            if (boothItemId > 0)
+            {
+                if (GUILayout.Button("商品ページを開く", GUILayout.Width(150)))
+                {
+                    Application.OpenURL($"https://booth.pm/ja/items/{boothItemId}");
+                }
+            }
             GUILayout.EndVertical();
             GUILayout.EndHorizontal();
         }
@@ -455,16 +430,14 @@ namespace UnityEditorAssetBrowser.Views
         }
 
         /// <summary>
-        /// 開くボタンの描画
+        /// "Explorerで開く"ボタンの描画
         /// </summary>
         /// <param name="itemPath">アイテムパス</param>
-        private void DrawOpenButton(string itemPath)
+        private void DrawExplorerOpenButton(string itemPath)
         {
-            // 相対パスの場合はAEDatabasePathと結合
             string fullPath = itemPath;
             if (itemPath.StartsWith("Datas\\"))
             {
-                // パスの区切り文字を正規化
                 string normalizedItemPath = itemPath.Replace(
                     "\\",
                     Path.DirectorySeparatorChar.ToString()
@@ -472,20 +445,17 @@ namespace UnityEditorAssetBrowser.Views
                 string normalizedAePath = DatabaseService
                     .GetAEDatabasePath()
                     .Replace("/", Path.DirectorySeparatorChar.ToString());
-
-                // Datas\Items\アイテム名 の形式の場合、AEDatabasePath\Items\アイテム名 に変換
                 string itemName = Path.GetFileName(normalizedItemPath);
                 fullPath = Path.Combine(normalizedAePath, "Items", itemName);
             }
             else
             {
-                // KAのアイテムの場合、kaDatabasePathと結合
                 fullPath = Path.Combine(DatabaseService.GetKADatabasePath(), "data", itemPath);
             }
 
             if (Directory.Exists(fullPath))
             {
-                if (GUILayout.Button("開く", GUILayout.Width(150)))
+                if (GUILayout.Button("Explorerで開く", GUILayout.Width(150)))
                 {
                     System.Diagnostics.Process.Start("explorer.exe", fullPath);
                 }
@@ -503,7 +473,21 @@ namespace UnityEditorAssetBrowser.Views
             GUILayout.Label(Path.GetFileName(package));
             if (GUILayout.Button("インポート", GUILayout.Width(100)))
             {
-                UnityPackageServices.ImportPackageAndSetThumbnails(package, imagePath);
+                // フォルダサムネイル生成設定を取得
+                bool generateFolderThumbnail = EditorPrefs.GetBool(
+                    "UnityEditorAssetBrowser_GenerateFolderThumbnail",
+                    true
+                );
+                if (generateFolderThumbnail)
+                {
+                    // サムネイルも生成する
+                    UnityPackageServices.ImportPackageAndSetThumbnails(package, imagePath);
+                }
+                else
+                {
+                    // 通常のUnityパッケージインポートのみ
+                    AssetDatabase.ImportPackage(package, true);
+                }
             }
             GUILayout.EndHorizontal();
         }
