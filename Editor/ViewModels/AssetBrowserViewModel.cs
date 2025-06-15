@@ -520,5 +520,40 @@ namespace UnityEditorAssetBrowser.ViewModels
                 2 => GetFilteredWorldObjects(),
                 _ => new List<object>(),
             };
+
+        /// <summary>
+        /// データベースを更新する
+        /// </summary>
+        public void UpdateDatabases(
+            AvatarExplorerDatabase? aeDatabase,
+            KonoAssetAvatarsDatabase? kaAvatarsDatabase,
+            KonoAssetWearablesDatabase? kaWearablesDatabase,
+            KonoAssetWorldObjectsDatabase? kaWorldObjectsDatabase,
+            KonoAssetOtherAssetsDatabase? kaOtherAssetsDatabase
+        )
+        {
+            // データベースがnullの場合は、即座に更新を完了
+            if (
+                aeDatabase == null
+                && kaAvatarsDatabase == null
+                && kaWearablesDatabase == null
+                && kaWorldObjectsDatabase == null
+                && kaOtherAssetsDatabase == null
+            )
+            {
+                _aeDatabase = null;
+                _kaAvatarsDatabase = null;
+                _kaWearablesDatabase = null;
+                _kaWorldObjectsDatabase = null;
+                _kaOtherAssetsDatabase = null;
+                return;
+            }
+
+            _aeDatabase = aeDatabase;
+            _kaAvatarsDatabase = kaAvatarsDatabase;
+            _kaWearablesDatabase = kaWearablesDatabase;
+            _kaWorldObjectsDatabase = kaWorldObjectsDatabase;
+            _kaOtherAssetsDatabase = kaOtherAssetsDatabase;
+        }
     }
 }

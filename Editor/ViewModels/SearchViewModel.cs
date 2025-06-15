@@ -47,6 +47,13 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <param name="tab">切り替え先のタブインデックス</param>
         public void SetCurrentTab(int tab)
         {
+            // データベースがnullの場合は、検索条件の更新をスキップ
+            if (_itemSearchService.IsDatabaseNull())
+            {
+                _currentTab = tab;
+                return;
+            }
+
             _tabSearchCriteria[_currentTab] = SearchCriteria.Clone();
             _currentTab = tab;
 

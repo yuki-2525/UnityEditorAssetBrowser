@@ -260,6 +260,10 @@ namespace UnityEditorAssetBrowser.Views
             if (!string.IsNullOrEmpty(path) && GUILayout.Button("削除", GUILayout.Width(60)))
             {
                 onPathChanged("");
+                if (label == "AE Database Path:")
+                {
+                    InitializeCategoryAssetTypes();
+                }
             }
 
             // 参照ボタン
@@ -273,6 +277,10 @@ namespace UnityEditorAssetBrowser.Views
                 if (!string.IsNullOrEmpty(selectedPath))
                 {
                     onPathChanged(selectedPath);
+                    if (label == "AE Database Path:")
+                    {
+                        InitializeCategoryAssetTypes();
+                    }
                 }
             }
 

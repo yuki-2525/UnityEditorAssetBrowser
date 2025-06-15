@@ -490,10 +490,6 @@ namespace UnityEditorAssetBrowser.Views
                     System.Diagnostics.Process.Start("explorer.exe", fullPath);
                 }
             }
-            else
-            {
-                Debug.LogWarning($"ディレクトリが存在しません: {fullPath}");
-            }
         }
 
         /// <summary>

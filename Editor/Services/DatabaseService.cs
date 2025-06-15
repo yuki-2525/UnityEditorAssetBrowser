@@ -96,9 +96,9 @@ namespace UnityEditorAssetBrowser.Services
             kaDatabasePath = EditorPrefs.GetString(KA_DATABASE_PATH_KEY, "");
 
             if (!string.IsNullOrEmpty(aeDatabasePath))
-                LoadAndUpdateAEDatabase();
+                LoadAEDatabase();
             if (!string.IsNullOrEmpty(kaDatabasePath))
-                LoadAndUpdateKADatabase();
+                LoadKADatabase();
         }
 
         /// <summary>
@@ -115,19 +115,40 @@ namespace UnityEditorAssetBrowser.Services
         /// AvatarExplorerデータベースを読み込み、更新する
         /// パスが無効な場合はエラーメッセージを表示し、パスをリセットする
         /// </summary>
-        public static void LoadAndUpdateAEDatabase()
+        public static void LoadAEDatabase()
         {
-            if (string.IsNullOrEmpty(aeDatabasePath))
-                return;
+            // データベースをクリア
+            ClearAEDatabase();
 
-            aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
-            if (aeDatabase == null)
+            if (!string.IsNullOrEmpty(aeDatabasePath))
             {
-                OnAEDatabasePathChanged("");
-                ShowErrorDialog(
-                    "パスエラー",
-                    "入力したパスが誤っています\n\nAvatarExplorer-v1.x.x/Datas\nを指定してください"
+                aeDatabase = AEDatabaseHelper.LoadAEDatabaseFile(aeDatabasePath);
+                if (aeDatabase == null)
+                {
+                    OnAEDatabasePathChanged("");
+                    ShowErrorDialog(
+                        "パスエラー",
+                        "入力したパスが誤っています\n\nAvatarExplorer-v1.x.x/Datas\nを指定してください"
+                    );
+                    return;
+                }
+            }
+
+            // データベースを更新
+            if (
+                _assetBrowserViewModel != null
+                && _searchViewModel != null
+                && _paginationViewModel != null
+            )
+            {
+                _assetBrowserViewModel.UpdateDatabases(
+                    GetAEDatabase(),
+                    GetKAAvatarsDatabase(),
+                    GetKAWearablesDatabase(),
+                    GetKAWorldObjectsDatabase(),
+                    GetKAOtherAssetsDatabase()
                 );
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
         }
 
@@ -135,26 +156,47 @@ namespace UnityEditorAssetBrowser.Services
         /// KonoAssetデータベースを読み込み、更新する
         /// パスが無効な場合はエラーメッセージを表示し、パスをリセットする
         /// </summary>
-        public static void LoadAndUpdateKADatabase()
+        public static void LoadKADatabase()
         {
-            if (string.IsNullOrEmpty(kaDatabasePath))
-                return;
+            // データベースをクリア
+            ClearKADatabase();
 
-            var metadataPath = Path.Combine(kaDatabasePath, "metadata");
-            if (!Directory.Exists(metadataPath))
+            if (!string.IsNullOrEmpty(kaDatabasePath))
             {
-                OnKADatabasePathChanged("");
-                ShowErrorDialog(
-                    "パスエラー",
-                    "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください"
-                );
+                var metadataPath = Path.Combine(kaDatabasePath, "metadata");
+                if (!Directory.Exists(metadataPath))
+                {
+                    OnKADatabasePathChanged("");
+                    ShowErrorDialog(
+                        "パスエラー",
+                        "入力したパスが誤っています\n\nKonoAssetの設定にある\n\"アプリデータの保存先\"と\n同一のディレクトリを指定してください"
+                    );
+                    return;
+                }
+
+                var result = KADatabaseHelper.LoadKADatabaseFiles(metadataPath);
+                kaAvatarsDatabase = result.avatarsDatabase;
+                kaWearablesDatabase = result.wearablesDatabase;
+                kaWorldObjectsDatabase = result.worldObjectsDatabase;
+                kaOtherAssetsDatabase = result.otherAssetsDatabase;
             }
 
-            var result = KADatabaseHelper.LoadKADatabaseFiles(metadataPath);
-            kaAvatarsDatabase = result.avatarsDatabase;
-            kaWearablesDatabase = result.wearablesDatabase;
-            kaWorldObjectsDatabase = result.worldObjectsDatabase;
-            kaOtherAssetsDatabase = result.otherAssetsDatabase;
+            // データベースを更新
+            if (
+                _assetBrowserViewModel != null
+                && _searchViewModel != null
+                && _paginationViewModel != null
+            )
+            {
+                _assetBrowserViewModel.UpdateDatabases(
+                    GetAEDatabase(),
+                    GetKAAvatarsDatabase(),
+                    GetKAWearablesDatabase(),
+                    GetKAWorldObjectsDatabase(),
+                    GetKAOtherAssetsDatabase()
+                );
+                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
+            }
         }
 
         /// <summary>
@@ -170,35 +212,55 @@ namespace UnityEditorAssetBrowser.Services
         public static void OnAEDatabasePathChanged(string path)
         {
             SetAEDatabasePath(path);
-            SaveSettings();
-
-            // データベースを更新
-            if (
-                _assetBrowserViewModel != null
-                && _searchViewModel != null
-                && _paginationViewModel != null
-            )
+            if (string.IsNullOrEmpty(path))
+            {
+                // パスが空の場合は、データベースをクリアして即座に更新
+                ClearAEDatabase();
+                if (
+                    _assetBrowserViewModel != null
+                    && _searchViewModel != null
+                    && _paginationViewModel != null
+                )
+                {
+                    _assetBrowserViewModel.UpdateDatabases(
+                        null,
+                        GetKAAvatarsDatabase(),
+                        GetKAWearablesDatabase(),
+                        GetKAWorldObjectsDatabase(),
+                        GetKAOtherAssetsDatabase()
+                    );
+                    // SetCurrentTabは呼ばない
+                }
+            }
+            else
             {
                 LoadAEDatabase();
-                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
+            SaveSettings();
         }
 
         public static void OnKADatabasePathChanged(string path)
         {
             SetKADatabasePath(path);
-            SaveSettings();
-
-            // データベースを更新
-            if (
-                _assetBrowserViewModel != null
-                && _searchViewModel != null
-                && _paginationViewModel != null
-            )
+            if (string.IsNullOrEmpty(path))
+            {
+                // パスが空の場合は、データベースをクリアして即座に更新
+                ClearKADatabase();
+                if (
+                    _assetBrowserViewModel != null
+                    && _searchViewModel != null
+                    && _paginationViewModel != null
+                )
+                {
+                    _assetBrowserViewModel.UpdateDatabases(GetAEDatabase(), null, null, null, null);
+                    // SetCurrentTabは呼ばない
+                }
+            }
+            else
             {
                 LoadKADatabase();
-                _searchViewModel.SetCurrentTab(_paginationViewModel.SelectedTab);
             }
+            SaveSettings();
         }
 
         /// <summary>
@@ -256,41 +318,6 @@ namespace UnityEditorAssetBrowser.Services
         /// <returns>データベース（存在しない場合はnull）</returns>
         public static KonoAssetOtherAssetsDatabase? GetKAOtherAssetsDatabase() =>
             kaOtherAssetsDatabase;
-
-        /// <summary>
-        /// AvatarExplorerデータベースを読み込む
-        /// </summary>
-        /// <param name="path">データベースのパス</param>
-        public static void LoadAEDatabase()
-        {
-            if (string.IsNullOrEmpty(aeDatabasePath))
-            {
-                ClearAEDatabase();
-                return;
-            }
-
-            LoadAndUpdateAEDatabase();
-            aeDatabase = GetAEDatabase();
-        }
-
-        /// <summary>
-        /// KonoAssetデータベースを読み込む
-        /// </summary>
-        /// <param name="path">データベースのパス</param>
-        public static void LoadKADatabase()
-        {
-            if (string.IsNullOrEmpty(kaDatabasePath))
-            {
-                ClearKADatabase();
-                return;
-            }
-
-            LoadAndUpdateKADatabase();
-            kaAvatarsDatabase = GetKAAvatarsDatabase();
-            kaWearablesDatabase = GetKAWearablesDatabase();
-            kaWorldObjectsDatabase = GetKAWorldObjectsDatabase();
-            kaOtherAssetsDatabase = GetKAOtherAssetsDatabase();
-        }
 
         /// <summary>
         /// AvatarExplorerデータベースをクリアする
