@@ -37,6 +37,29 @@ namespace UnityEditorAssetBrowser.Views
         }
 
         /// <summary>
+        /// 完全な画像パスを取得
+        /// </summary>
+        /// <param name="imagePath">画像パス</param>
+        /// <returns>完全な画像パス</returns>
+        public string GetFullImagePath(string imagePath)
+        {
+            if (string.IsNullOrEmpty(imagePath))
+            {
+                Debug.LogWarning("[AssetItemView] 画像パスが未設定です");
+                return string.Empty;
+            }
+
+            if (imagePath.StartsWith("Datas"))
+            {
+                return Path.Combine(
+                    DatabaseService.GetAEDatabasePath(),
+                    imagePath.Replace("Datas\\", "")
+                );
+            }
+            return Path.Combine(DatabaseService.GetKADatabasePath(), "images", imagePath);
+        }
+
+        /// <summary>
         /// AEアバターアイテムの表示
         /// </summary>
         /// <param name="item">表示するアイテム</param>
@@ -62,7 +85,7 @@ namespace UnityEditorAssetBrowser.Views
                 showCategory,
                 showSupportedAvatars
             );
-            DrawUnityPackageSection(item.ItemPath, item.Title);
+            DrawUnityPackageSection(item.ItemPath, item.Title, item.ImagePath);
             GUILayout.EndVertical();
         }
 
@@ -106,7 +129,11 @@ namespace UnityEditorAssetBrowser.Views
                 showCategory,
                 showSupportedAvatars
             );
-            DrawUnityPackageSection(itemPath, item.description.name);
+            DrawUnityPackageSection(
+                itemPath,
+                item.description.name,
+                item.description.imageFilename
+            );
             GUILayout.EndVertical();
         }
 
@@ -148,7 +175,11 @@ namespace UnityEditorAssetBrowser.Views
                 true,
                 showSupportedAvatars
             );
-            DrawUnityPackageSection(itemPath, item.description.name);
+            DrawUnityPackageSection(
+                itemPath,
+                item.description.name,
+                item.description.imageFilename
+            );
             GUILayout.EndVertical();
         }
 
@@ -186,7 +217,11 @@ namespace UnityEditorAssetBrowser.Views
                 true,
                 false
             );
-            DrawUnityPackageSection(itemPath, item.description.name);
+            DrawUnityPackageSection(
+                itemPath,
+                item.description.name,
+                item.description.imageFilename
+            );
             GUILayout.EndVertical();
         }
 
@@ -224,7 +259,11 @@ namespace UnityEditorAssetBrowser.Views
                 true,
                 false
             );
-            DrawUnityPackageSection(itemPath, item.description.name);
+            DrawUnityPackageSection(
+                itemPath,
+                item.description.name,
+                item.description.imageFilename
+            );
             GUILayout.EndVertical();
         }
 
@@ -416,23 +455,6 @@ namespace UnityEditorAssetBrowser.Views
         }
 
         /// <summary>
-        /// 完全な画像パスを取得
-        /// </summary>
-        /// <param name="imagePath">画像パス</param>
-        /// <returns>完全な画像パス</returns>
-        private string GetFullImagePath(string imagePath)
-        {
-            if (imagePath.StartsWith("Datas"))
-            {
-                return Path.Combine(
-                    DatabaseService.GetAEDatabasePath(),
-                    imagePath.Replace("Datas\\", "")
-                );
-            }
-            return Path.Combine(DatabaseService.GetKADatabasePath(), "images", imagePath);
-        }
-
-        /// <summary>
         /// 開くボタンの描画
         /// </summary>
         /// <param name="itemPath">アイテムパス</param>
@@ -475,11 +497,29 @@ namespace UnityEditorAssetBrowser.Views
         }
 
         /// <summary>
+        /// UnityPackageアイテムの描画
+        /// </summary>
+        /// <param name="package">パッケージパス</param>
+        /// <param name="imagePath">サムネイル画像パス</param>
+        private void DrawUnityPackageItem(string package, string imagePath)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(Path.GetFileName(package));
+            if (GUILayout.Button("インポート", GUILayout.Width(100)))
+            {
+                //UnityPackageServices.ImportPackageAndSetThumbnails(package, imagePath);
+                AssetDatabase.ImportPackage(package, true);
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
         /// UnityPackageセクションの描画
         /// </summary>
         /// <param name="itemPath">アイテムパス</param>
         /// <param name="itemName">アイテム名</param>
-        private void DrawUnityPackageSection(string itemPath, string itemName)
+        /// <param name="imagePath">サムネイル画像パス</param>
+        private void DrawUnityPackageSection(string itemPath, string itemName, string imagePath)
         {
             // 相対パスの場合はAEDatabasePathと結合
             string fullPath = itemPath;
@@ -555,7 +595,7 @@ namespace UnityEditorAssetBrowser.Views
                     EditorGUI.indentLevel++;
                     for (int i = 0; i < unityPackages.Count(); i++)
                     {
-                        DrawUnityPackageItem(unityPackages.ElementAt(i));
+                        DrawUnityPackageItem(unityPackages.ElementAt(i), imagePath);
 
                         // 最後のアイテム以外の後に線を描画
                         if (i < unityPackages.Count() - 1)
@@ -582,21 +622,6 @@ namespace UnityEditorAssetBrowser.Views
                 EditorGUILayout.Space(5);
             }
             EditorGUILayout.EndVertical();
-        }
-
-        /// <summary>
-        /// UnityPackageアイテムの描画
-        /// </summary>
-        /// <param name="package">パッケージパス</param>
-        private void DrawUnityPackageItem(string package)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Label(Path.GetFileName(package));
-            if (GUILayout.Button("インポート", GUILayout.Width(100)))
-            {
-                AssetDatabase.ImportPackage(package, true);
-            }
-            GUILayout.EndHorizontal();
         }
 
         /// <summary>
