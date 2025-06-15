@@ -507,8 +507,7 @@ namespace UnityEditorAssetBrowser.Views
             GUILayout.Label(Path.GetFileName(package));
             if (GUILayout.Button("インポート", GUILayout.Width(100)))
             {
-                //UnityPackageServices.ImportPackageAndSetThumbnails(package, imagePath);
-                AssetDatabase.ImportPackage(package, true);
+                UnityPackageServices.ImportPackageAndSetThumbnails(package, imagePath);
             }
             GUILayout.EndHorizontal();
         }
