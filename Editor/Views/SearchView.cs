@@ -162,6 +162,7 @@ namespace UnityEditorAssetBrowser.Views
                 if (newTitleSearch != _searchViewModel.SearchCriteria.TitleSearch)
                 {
                     _searchViewModel.SearchCriteria.TitleSearch = newTitleSearch;
+                    _paginationViewModel.ResetPage();
                     GUI.changed = true;
                 }
                 EditorGUILayout.EndHorizontal();
@@ -175,6 +176,7 @@ namespace UnityEditorAssetBrowser.Views
                 if (newAuthorSearch != _searchViewModel.SearchCriteria.AuthorSearch)
                 {
                     _searchViewModel.SearchCriteria.AuthorSearch = newAuthorSearch;
+                    _paginationViewModel.ResetPage();
                     GUI.changed = true;
                 }
                 EditorGUILayout.EndHorizontal();
@@ -190,6 +192,7 @@ namespace UnityEditorAssetBrowser.Views
                     if (newCategorySearch != _searchViewModel.SearchCriteria.CategorySearch)
                     {
                         _searchViewModel.SearchCriteria.CategorySearch = newCategorySearch;
+                        _paginationViewModel.ResetPage();
                         GUI.changed = true;
                     }
                     EditorGUILayout.EndHorizontal();
@@ -210,6 +213,7 @@ namespace UnityEditorAssetBrowser.Views
                     {
                         _searchViewModel.SearchCriteria.SupportedAvatarsSearch =
                             newSupportedAvatarsSearch;
+                        _paginationViewModel.ResetPage();
                         GUI.changed = true;
                     }
                     EditorGUILayout.EndHorizontal();
@@ -224,6 +228,7 @@ namespace UnityEditorAssetBrowser.Views
                 if (newTagsSearch != _searchViewModel.SearchCriteria.TagsSearch)
                 {
                     _searchViewModel.SearchCriteria.TagsSearch = newTagsSearch;
+                    _paginationViewModel.ResetPage();
                     GUI.changed = true;
                 }
                 EditorGUILayout.EndHorizontal();
@@ -237,6 +242,7 @@ namespace UnityEditorAssetBrowser.Views
                 if (newMemoSearch != _searchViewModel.SearchCriteria.MemoSearch)
                 {
                     _searchViewModel.SearchCriteria.MemoSearch = newMemoSearch;
+                    _paginationViewModel.ResetPage();
                     GUI.changed = true;
                 }
                 EditorGUILayout.EndHorizontal();

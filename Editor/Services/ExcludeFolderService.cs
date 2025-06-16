@@ -27,6 +27,7 @@ namespace UnityEditorAssetBrowser.Services
             "AnimationControllers?",
             "Animators?",
             "Commons?",
+            "Data",
             "Expressions?",
             "Fbxs?",
             "Mats?",

@@ -186,14 +186,17 @@ namespace UnityEditorAssetBrowser.Services
             }
             else
             {
-                // 除外フォルダがなければ従来通り
-                foreach (var folder in folders)
+                // 除外フォルダがなければ、最も深い共通の親ディレクトリのみを対象にする
+                if (folders.Any())
                 {
-                    string bestFolder = FindBestThumbnailFolder(folder);
-                    // Assets直下のFolderIcon.jpgは絶対に保存しない
-                    if (!string.IsNullOrEmpty(bestFolder) && !IsRootFolderIcon(bestFolder))
+                    string commonParent = GetDeepestCommonParent(folders);
+                    if (!string.IsNullOrEmpty(commonParent))
                     {
-                        targetFolders.Add(bestFolder);
+                        string bestFolder = FindBestThumbnailFolder(commonParent);
+                        if (!string.IsNullOrEmpty(bestFolder) && !IsRootFolderIcon(bestFolder))
+                        {
+                            targetFolders.Add(bestFolder);
+                        }
                     }
                 }
             }
@@ -275,6 +278,29 @@ namespace UnityEditorAssetBrowser.Services
                 return false;
             var parts = folderPath.Split('/');
             return parts.Length == 2 && parts[0] == "Assets" && parts[1] == "FolderIcon.jpg";
+        }
+
+        // 複数パスの最も深い共通の親ディレクトリを求める
+        private static string GetDeepestCommonParent(IEnumerable<string> paths)
+        {
+            if (paths == null || !paths.Any())
+                return string.Empty;
+            var splitPaths = paths.Select(p => p.Split('/')).ToList();
+            int minLen = splitPaths.Min(arr => arr.Length);
+            List<string> common = new List<string>();
+            for (int i = 0; i < minLen; i++)
+            {
+                string part = splitPaths[0][i];
+                if (splitPaths.All(arr => arr[i] == part))
+                {
+                    common.Add(part);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            return common.Count > 0 ? string.Join("/", common) : string.Empty;
         }
 
         [Serializable]

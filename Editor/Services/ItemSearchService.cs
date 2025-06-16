@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using UnityEditorAssetBrowser.Models;
+using UnityEngine;
 
 namespace UnityEditorAssetBrowser.Services
 {
@@ -29,24 +30,33 @@ namespace UnityEditorAssetBrowser.Services
         /// </summary>
         /// <param name="item">判定するアイテム</param>
         /// <param name="criteria">検索条件</param>
+        /// <param name="tabIndex">現在のタブインデックス</param>
         /// <returns>検索条件に一致する場合はtrue、それ以外はfalse</returns>
-        public bool IsItemMatchSearch(object item, SearchCriteria criteria)
+        public bool IsItemMatchSearch(object item, SearchCriteria criteria, int tabIndex = 0)
         {
             if (criteria == null)
+            {
                 return true;
+            }
 
             // 基本検索
             if (!string.IsNullOrEmpty(criteria.SearchQuery))
             {
-                if (!IsBasicSearchMatch(item, criteria.GetKeywords()))
+                bool basic = IsBasicSearchMatch(item, criteria.GetKeywords(), tabIndex);
+                if (!basic)
+                {
                     return false;
+                }
             }
 
             // 詳細検索
             if (criteria.ShowAdvancedSearch)
             {
-                if (!IsAdvancedSearchMatch(item, criteria))
+                bool adv = IsAdvancedSearchMatch(item, criteria);
+                if (!adv)
+                {
                     return false;
+                }
             }
 
             return true;
@@ -57,8 +67,9 @@ namespace UnityEditorAssetBrowser.Services
         /// </summary>
         /// <param name="item">判定するアイテム</param>
         /// <param name="keywords">検索キーワード</param>
+        /// <param name="tabIndex">現在のタブインデックス</param>
         /// <returns>検索条件に一致する場合はtrue、それ以外はfalse</returns>
-        private bool IsBasicSearchMatch(object item, string[] keywords)
+        private bool IsBasicSearchMatch(object item, string[] keywords, int tabIndex)
         {
             foreach (var keyword in keywords)
             {
@@ -66,30 +77,52 @@ namespace UnityEditorAssetBrowser.Services
 
                 // タイトル
                 if (GetTitle(item).Contains(keyword, StringComparison.InvariantCultureIgnoreCase))
+                {
                     matchesKeyword = true;
+                }
 
                 // 作者名
                 if (GetAuthor(item).Contains(keyword, StringComparison.InvariantCultureIgnoreCase))
+                {
                     matchesKeyword = true;
+                }
 
-                // カテゴリ
-                if (IsCategoryMatch(item, new[] { keyword }))
-                    matchesKeyword = true;
+                // カテゴリ（アバタータブはスキップ＝matchesKeywordをtrueにしない）
+                if (tabIndex != 0)
+                {
+                    if (IsCategoryMatch(item, new[] { keyword }))
+                    {
+                        matchesKeyword = true;
+                    }
+                }
+                // アバタータブはスキップ
 
-                // 対応アバター
-                if (IsSupportedAvatarsMatch(item, new[] { keyword }))
-                    matchesKeyword = true;
+                // 対応アバター（アイテムタブのみ判定）
+                if (tabIndex == 1)
+                {
+                    if (IsSupportedAvatarsMatch(item, new[] { keyword }))
+                    {
+                        matchesKeyword = true;
+                    }
+                }
+                // それ以外のタブはスキップ
 
                 // タグ
                 if (IsTagsMatch(item, new[] { keyword }))
+                {
                     matchesKeyword = true;
+                }
 
                 // メモ
                 if (IsMemoMatch(item, new[] { keyword }))
+                {
                     matchesKeyword = true;
+                }
 
                 if (!matchesKeyword)
+                {
                     return false;
+                }
             }
 
             return true;
