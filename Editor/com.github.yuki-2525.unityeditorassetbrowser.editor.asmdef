@@ -1,5 +1,5 @@
 {
-    "name": "com.github.yuki-2525.unityeditorassetbrowser.editor",
+    "name": "com.yuki-2525.unityeditorassetbrowser.editor",
     "references": [],
     "includePlatforms": [
         "Editor"
