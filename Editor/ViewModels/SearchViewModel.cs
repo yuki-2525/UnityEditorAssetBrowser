@@ -81,6 +81,6 @@ namespace UnityEditorAssetBrowser.ViewModels
         /// <param name="item">判定するアイテム</param>
         /// <returns>検索条件に一致する場合はtrue、それ以外はfalse</returns>
         public bool IsItemMatchSearch(object item) =>
-            _itemSearchService.IsItemMatchSearch(item, SearchCriteria);
+            _itemSearchService.IsItemMatchSearch(item, SearchCriteria, _currentTab);
     }
 }

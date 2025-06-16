@@ -164,11 +164,7 @@ namespace UnityEditorAssetBrowser.Views
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    // アバターカテゴリのアイテムのみを表示
-                    if (aeItem.GetAECategoryName() == "アバター")
-                    {
-                        _assetItemView.ShowAvatarItem(aeItem);
-                    }
+                    _assetItemView.ShowAvatarItem(aeItem);
                 }
                 else if (item is KonoAssetAvatarItem kaItem)
                 {
@@ -190,18 +186,7 @@ namespace UnityEditorAssetBrowser.Views
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    var category = aeItem.GetAECategoryName();
-                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
-
-                    // 設定されたアセットタイプに基づいて表示を決定
-                    if (EditorPrefs.HasKey(key))
-                    {
-                        var assetType = EditorPrefs.GetInt(key);
-                        if (assetType == 1) // アバター関連アセット
-                        {
-                            _assetItemView.ShowAvatarItem(aeItem);
-                        }
-                    }
+                    _assetItemView.ShowAvatarItem(aeItem);
                 }
                 else if (item is KonoAssetWearableItem kaItem)
                 {
@@ -223,15 +208,7 @@ namespace UnityEditorAssetBrowser.Views
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    var category = aeItem.GetAECategoryName();
-                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
-
-                    // 設定されたアセットタイプに基づいて表示を決定
-                    var assetType = EditorPrefs.GetInt(key);
-                    if (assetType == 2) // ワールドアセット
-                    {
-                        _assetItemView.ShowAvatarItem(aeItem);
-                    }
+                    _assetItemView.ShowAvatarItem(aeItem);
                 }
                 else if (item is KonoAssetWorldObjectItem worldItem)
                 {
@@ -253,18 +230,7 @@ namespace UnityEditorAssetBrowser.Views
             {
                 if (item is AvatarExplorerItem aeItem)
                 {
-                    var category = aeItem.GetAECategoryName();
-                    var key = "UnityEditorAssetBrowser_CategoryAssetType_" + category;
-
-                    // 設定されたアセットタイプに基づいて表示を決定
-                    if (EditorPrefs.HasKey(key))
-                    {
-                        var assetType = EditorPrefs.GetInt(key);
-                        if (assetType == 3) // その他
-                        {
-                            _assetItemView.ShowAvatarItem(aeItem);
-                        }
-                    }
+                    _assetItemView.ShowAvatarItem(aeItem);
                 }
                 else if (item is KonoAssetOtherAssetItem otherItem)
                 {
