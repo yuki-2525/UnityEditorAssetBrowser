@@ -136,6 +136,33 @@ namespace UnityEditorAssetBrowser.Services
                 string json = JsonUtility.ToJson(data);
                 EditorPrefs.SetString(PREFS_KEY_EXCLUDE_FOLDERS, json);
             }
+            else
+            {
+                // マイグレーション: 新しいデフォルト項目があればONで追加、不要な項目は削除
+                var data = JsonUtility.FromJson<ExcludeFoldersPrefsData>(excludeFoldersJson);
+                bool updated = false;
+                foreach (var def in DefaultExcludePatterns)
+                {
+                    if (!data.enabledDefaults.Contains(def))
+                    {
+                        data.enabledDefaults.Add(def);
+                        updated = true;
+                    }
+                }
+                var toRemove = data
+                    .enabledDefaults.Where(x => !DefaultExcludePatterns.Contains(x))
+                    .ToList();
+                foreach (var rem in toRemove)
+                {
+                    data.enabledDefaults.Remove(rem);
+                    updated = true;
+                }
+                if (updated)
+                {
+                    string json = JsonUtility.ToJson(data);
+                    EditorPrefs.SetString(PREFS_KEY_EXCLUDE_FOLDERS, json);
+                }
+            }
         }
 
         /// <summary>
