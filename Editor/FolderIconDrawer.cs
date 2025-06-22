@@ -22,11 +22,28 @@ namespace UnityEditorAssetBrowser
         // 現在イベントが登録されているかどうかのフラグ
         private static bool _isRegistered = false;
 
+        // キャッシュシステム
+        private static Dictionary<string, FolderIconCache> _folderCache = new Dictionary<string, FolderIconCache>();
+        private static Dictionary<string, Texture2D> _textureCache = new Dictionary<string, Texture2D>();
+        private static Dictionary<string, bool> _directoryCache = new Dictionary<string, bool>();
+        private const int MAX_CACHE_SIZE = 1000;
+        private static int _cacheAccessCounter = 0;
+
+        private struct FolderIconCache
+        {
+            public List<string> iconPaths;
+            public long lastWriteTime;
+            public bool isValid;
+        }
+
         // 静的コンストラクタ：エディタ起動時に呼ばれる
         static FolderIconDrawer()
         {
             // 起動時にEditorPrefsの値で初期化
             SetEnabled(EditorPrefs.GetBool(PREFS_KEY_SHOW_FOLDER_THUMBNAIL, true));
+            
+            // キャッシュクリーンアップのためのイベント登録
+            EditorApplication.update += CleanupCacheIfNeeded;
         }
 
         /// <summary>
@@ -58,11 +75,11 @@ namespace UnityEditorAssetBrowser
                 return;
 
             string path = AssetDatabase.GUIDToAssetPath(guid);
-            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            if (string.IsNullOrEmpty(path))
                 return;
 
-            // フォルダの場合のみ
-            if (!File.GetAttributes(path).HasFlag(FileAttributes.Directory))
+            // ディレクトリチェック（キャッシュ使用）
+            if (!IsDirectoryCached(path))
                 return;
 
             // 除外フォルダ名判定
@@ -70,25 +87,13 @@ namespace UnityEditorAssetBrowser
             if (ExcludeFolderService.IsExcludedFolder(folderName))
                 return;
 
-            // 自フォルダ内のFolderIcon.jpgを最優先で取得
-            string selfIconPath = Path.Combine(path, "FolderIcon.jpg").Replace("\\", "/");
-            Texture2D selfTexture = null;
-            if (File.Exists(selfIconPath))
-                selfTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(selfIconPath);
+            // キャッシュからアイコンパスを取得
+            var iconPaths = GetIconPathsCached(path);
+            if (iconPaths == null || iconPaths.Count == 0)
+                return;
 
-            List<string> iconPaths;
-            if (selfTexture != null)
-            {
-                iconPaths = new List<string> { selfIconPath };
-            }
-            else
-            {
-                iconPaths = FindFolderIconsRecursive(path, 0, 4, 4);
-            }
-            var textures = iconPaths
-                .Select(p => AssetDatabase.LoadAssetAtPath<Texture2D>(p))
-                .Where(t => t != null)
-                .ToList();
+            // テクスチャをキャッシュから取得
+            var textures = GetTexturesCached(iconPaths);
             if (textures.Count == 0)
                 return;
 
@@ -186,6 +191,148 @@ namespace UnityEditorAssetBrowser
             }
             catch { }
             return result;
+        }
+
+        /// <summary>
+        /// ディレクトリかどうかをキャッシュ付きで判定
+        /// </summary>
+        private static bool IsDirectoryCached(string path)
+        {
+            if (_directoryCache.TryGetValue(path, out bool isDirectory))
+                return isDirectory;
+
+            try
+            {
+                isDirectory = Directory.Exists(path) && File.GetAttributes(path).HasFlag(FileAttributes.Directory);
+                _directoryCache[path] = isDirectory;
+                return isDirectory;
+            }
+            catch
+            {
+                _directoryCache[path] = false;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// アイコンパスをキャッシュ付きで取得
+        /// </summary>
+        private static List<string> GetIconPathsCached(string path)
+        {
+            try
+            {
+                long currentWriteTime = Directory.GetLastWriteTime(path).ToBinary();
+                
+                if (_folderCache.TryGetValue(path, out var cache) && 
+                    cache.isValid && cache.lastWriteTime == currentWriteTime)
+                {
+                    return cache.iconPaths;
+                }
+
+                // 自フォルダ内のFolderIcon.jpgを最優先で取得
+                string selfIconPath = Path.Combine(path, "FolderIcon.jpg").Replace("\\", "/");
+                List<string> iconPaths;
+                
+                if (File.Exists(selfIconPath))
+                {
+                    iconPaths = new List<string> { selfIconPath };
+                }
+                else
+                {
+                    iconPaths = FindFolderIconsRecursive(path, 0, 4, 4);
+                }
+
+                // キャッシュに保存
+                _folderCache[path] = new FolderIconCache
+                {
+                    iconPaths = iconPaths,
+                    lastWriteTime = currentWriteTime,
+                    isValid = true
+                };
+
+                return iconPaths;
+            }
+            catch
+            {
+                return new List<string>();
+            }
+        }
+
+        /// <summary>
+        /// テクスチャをキャッシュ付きで取得
+        /// </summary>
+        private static List<Texture2D> GetTexturesCached(List<string> iconPaths)
+        {
+            var textures = new List<Texture2D>();
+            
+            foreach (var iconPath in iconPaths)
+            {
+                if (_textureCache.TryGetValue(iconPath, out var cachedTexture) && cachedTexture != null)
+                {
+                    textures.Add(cachedTexture);
+                }
+                else
+                {
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(iconPath);
+                    if (texture != null)
+                    {
+                        _textureCache[iconPath] = texture;
+                        textures.Add(texture);
+                    }
+                }
+            }
+            
+            return textures;
+        }
+
+        /// <summary>
+        /// 定期的なキャッシュクリーンアップ
+        /// </summary>
+        private static void CleanupCacheIfNeeded()
+        {
+            _cacheAccessCounter++;
+            
+            // 1000フレームごとにクリーンアップ
+            if (_cacheAccessCounter % 1000 == 0)
+            {
+                CleanupCache();
+            }
+        }
+
+        /// <summary>
+        /// キャッシュのクリーンアップ
+        /// </summary>
+        private static void CleanupCache()
+        {
+            // テクスチャキャッシュが上限を超えた場合、半分をクリア
+            if (_textureCache.Count > MAX_CACHE_SIZE)
+            {
+                var keysToRemove = _textureCache.Keys.Take(_textureCache.Count / 2).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    _textureCache.Remove(key);
+                }
+            }
+
+            // フォルダキャッシュも同様にクリーンアップ
+            if (_folderCache.Count > MAX_CACHE_SIZE)
+            {
+                var keysToRemove = _folderCache.Keys.Take(_folderCache.Count / 2).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    _folderCache.Remove(key);
+                }
+            }
+
+            // ディレクトリキャッシュも同様にクリーンアップ
+            if (_directoryCache.Count > MAX_CACHE_SIZE)
+            {
+                var keysToRemove = _directoryCache.Keys.Take(_directoryCache.Count / 2).ToList();
+                foreach (var key in keysToRemove)
+                {
+                    _directoryCache.Remove(key);
+                }
+            }
         }
 
         [System.Serializable]

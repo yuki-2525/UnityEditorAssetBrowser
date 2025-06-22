@@ -265,21 +265,37 @@ namespace UnityEditorAssetBrowser.Views
         {
             GUILayout.BeginHorizontal();
             DrawItemImage(imagePath);
+            
             GUILayout.BeginVertical();
+            DrawItemBasicInfo(title, author);
+            DrawItemMetadata(title, category, supportedAvatars, tags, memo);
+            DrawItemActionButtons(itemPath, boothItemId);
+            GUILayout.EndVertical();
+            
+            GUILayout.EndHorizontal();
+        }
 
-            // タイトル
+        /// <summary>
+        /// アイテムの基本情報（タイトル・作者）を描画
+        /// </summary>
+        private void DrawItemBasicInfo(string title, string author)
+        {
             GUILayout.Label(title, EditorStyles.boldLabel);
-
-            // 作者名
             GUILayout.Label($"作者: {author}");
+        }
 
-            // カテゴリ（categoryがnullや空でなければ表示）
+        /// <summary>
+        /// アイテムのメタデータ（カテゴリ・対応アバター・タグ・メモ）を描画
+        /// </summary>
+        private void DrawItemMetadata(string title, string? category, string[]? supportedAvatars, string[]? tags, string? memo)
+        {
+            // カテゴリ
             if (!string.IsNullOrEmpty(category))
             {
                 DrawCategory(title, category);
             }
 
-            // 対応アバター（supportedAvatarsがnullや空でなければ表示）
+            // 対応アバター
             if (supportedAvatars != null && supportedAvatars.Length > 0)
             {
                 DrawSupportedAvatars(supportedAvatars);
@@ -296,18 +312,31 @@ namespace UnityEditorAssetBrowser.Views
             {
                 DrawMemo(title, memo);
             }
+        }
 
+        /// <summary>
+        /// アクションボタン（エクスプローラー・Booth）を描画
+        /// </summary>
+        private void DrawItemActionButtons(string itemPath, int boothItemId)
+        {
             EditorGUILayout.Space(5);
             DrawExplorerOpenButton(itemPath);
+            
             if (boothItemId > 0)
             {
-                if (GUILayout.Button("商品ページを開く", GUILayout.Width(150)))
-                {
-                    Application.OpenURL($"https://booth.pm/ja/items/{boothItemId}");
-                }
+                DrawBoothOpenButton(boothItemId);
             }
-            GUILayout.EndVertical();
-            GUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// Booth商品ページを開くボタンを描画
+        /// </summary>
+        private void DrawBoothOpenButton(int boothItemId)
+        {
+            if (GUILayout.Button("商品ページを開く", GUILayout.Width(150)))
+            {
+                Application.OpenURL($"https://booth.pm/ja/items/{boothItemId}");
+            }
         }
 
         /// <summary>

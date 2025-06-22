@@ -46,6 +46,12 @@ namespace UnityEditorAssetBrowser.Views
             "その他",
         };
 
+        /// <summary>キャッシュされたAEデータベースパス</summary>
+        private string? _cachedAEDatabasePath;
+
+        /// <summary>キャッシュされたKAデータベースパス</summary>
+        private string? _cachedKADatabasePath;
+
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -70,6 +76,18 @@ namespace UnityEditorAssetBrowser.Views
             _searchView = searchView;
             _paginationView = paginationView;
             _assetItemView = new AssetItemView(aeDatabase);
+
+            // データベースパスをキャッシュ
+            RefreshDatabasePaths();
+        }
+
+        /// <summary>
+        /// データベースパスを更新してキャッシュ
+        /// </summary>
+        private void RefreshDatabasePaths()
+        {
+            _cachedAEDatabasePath = DatabaseService.GetAEDatabasePath();
+            _cachedKADatabasePath = DatabaseService.GetKADatabasePath();
         }
 
         /// <summary>
@@ -160,6 +178,13 @@ namespace UnityEditorAssetBrowser.Views
             var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
             var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
+            // 表示前に必要な画像のみ読み込み
+            ImageServices.Instance.UpdateVisibleImages(
+                pageItems,
+                _cachedAEDatabasePath ?? string.Empty,
+                _cachedKADatabasePath ?? string.Empty
+            );
+
             foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
@@ -181,6 +206,13 @@ namespace UnityEditorAssetBrowser.Views
             var filteredItems = _assetBrowserViewModel.GetFilteredItems();
             var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
             var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
+
+            // 表示前に必要な画像のみ読み込み
+            ImageServices.Instance.UpdateVisibleImages(
+                pageItems,
+                _cachedAEDatabasePath ?? string.Empty,
+                _cachedKADatabasePath ?? string.Empty
+            );
 
             foreach (var item in pageItems)
             {
@@ -204,6 +236,13 @@ namespace UnityEditorAssetBrowser.Views
             var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
             var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
 
+            // 表示前に必要な画像のみ読み込み
+            ImageServices.Instance.UpdateVisibleImages(
+                pageItems,
+                _cachedAEDatabasePath ?? string.Empty,
+                _cachedKADatabasePath ?? string.Empty
+            );
+
             foreach (var item in pageItems)
             {
                 if (item is AvatarExplorerItem aeItem)
@@ -225,6 +264,13 @@ namespace UnityEditorAssetBrowser.Views
             var filteredItems = _assetBrowserViewModel.GetFilteredOthers();
             var sortedItems = _assetBrowserViewModel.SortItems(filteredItems);
             var pageItems = _paginationViewModel.GetCurrentPageItems(sortedItems);
+
+            // 表示前に必要な画像のみ読み込み
+            ImageServices.Instance.UpdateVisibleImages(
+                pageItems,
+                _cachedAEDatabasePath ?? string.Empty,
+                _cachedKADatabasePath ?? string.Empty
+            );
 
             foreach (var item in pageItems)
             {

@@ -229,14 +229,14 @@ namespace UnityEditorAssetBrowser
         }
 
         /// <summary>
-        /// 画像キャッシュの更新
+        /// 画像キャッシュの更新（非推奨 - 新しい実装では自動管理）
+        /// 新しい実装では表示時に自動的に必要な画像のみ読み込まれる
         /// </summary>
         private void UpdateImageCache()
         {
-            _assetBrowserViewModel.RefreshImageCache(
-                DatabaseService.GetAEDatabasePath(),
-                DatabaseService.GetKADatabasePath()
-            );
+            // 新しい実装では画像キャッシュは表示時に自動管理されるため、
+            // ここではキャッシュクリアのみ実行
+            ImageServices.Instance.ClearCache();
         }
 
         /// <summary>
@@ -256,15 +256,15 @@ namespace UnityEditorAssetBrowser
             // 初期値の設定
             var defaultTypes = new Dictionary<string, int>
             {
-                { "アバター", 0 }, // アバター
-                { "衣装", 1 }, // アバター関連アセット
-                { "テクスチャ", 1 }, // アバター関連アセット
-                { "ギミック", 1 }, // アバター関連アセット
-                { "アクセサリー", 1 }, // アバター関連アセット
-                { "髪型", 1 }, // アバター関連アセット
-                { "アニメーション", 1 }, // アバター関連アセット
-                { "ツール", 3 }, // その他
-                { "シェーダー", 3 }, // その他
+                { "アバター", AssetTypeConstants.AVATAR },
+                { "衣装", AssetTypeConstants.AVATAR_RELATED },
+                { "テクスチャ", AssetTypeConstants.AVATAR_RELATED },
+                { "ギミック", AssetTypeConstants.AVATAR_RELATED },
+                { "アクセサリー", AssetTypeConstants.AVATAR_RELATED },
+                { "髪型", AssetTypeConstants.AVATAR_RELATED },
+                { "アニメーション", AssetTypeConstants.AVATAR_RELATED },
+                { "ツール", AssetTypeConstants.OTHER },
+                { "シェーダー", AssetTypeConstants.OTHER },
             };
 
             // 指定された順序のカテゴリの初期化
@@ -321,9 +321,9 @@ namespace UnityEditorAssetBrowser
         {
             if (category.Contains("ワールド") || category.Contains("world"))
             {
-                return 2; // ワールドアセット
+                return AssetTypeConstants.WORLD;
             }
-            return 3; // その他
+            return AssetTypeConstants.OTHER;
         }
         #endregion
 

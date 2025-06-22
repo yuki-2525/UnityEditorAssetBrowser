@@ -443,6 +443,7 @@ namespace UnityEditorAssetBrowser.Views
 
                 // ユーザー追加領域
                 EditorGUILayout.LabelField("ユーザー追加除外フォルダ", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("フォルダ名を指定することで、そのフォルダのサムネイル表示を無効にできます。\n正規表現を利用することが可能です。", MessageType.Info);
                 EditorGUILayout.BeginHorizontal();
                 GUI.SetNextControlName("NewExcludeFolderField");
                 _newExcludeFolder = EditorGUILayout.TextField(
