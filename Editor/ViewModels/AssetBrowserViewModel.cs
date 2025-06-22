@@ -39,6 +39,9 @@ namespace UnityEditorAssetBrowser.ViewModels
         private readonly SearchViewModel _searchViewModel;
         private string? _lastError;
 
+        /// <summary>ソート処理用のAssetItemヘルパーインスタンス（パフォーマンス最適化）</summary>
+        private static readonly AssetItem _assetItemHelper = new AssetItem();
+
         public string? LastError => _lastError;
 
         public SortMethod CurrentSortMethod => _currentSortMethod;
@@ -118,7 +121,7 @@ namespace UnityEditorAssetBrowser.ViewModels
                         // アセットタイプが0（アバター）のアイテムのみを表示
                         if (EditorPrefs.HasKey(key))
                         {
-                            return EditorPrefs.GetInt(key) == 0;
+                            return EditorPrefs.GetInt(key) == AssetTypeConstants.AVATAR;
                         }
                         return item.Type == "0"; // キーが存在しない場合は従来の判定
                     })
@@ -152,7 +155,7 @@ namespace UnityEditorAssetBrowser.ViewModels
                         // アセットタイプが1（アバター関連アセット）のアイテムのみを表示
                         if (EditorPrefs.HasKey(key))
                         {
-                            return EditorPrefs.GetInt(key) == 1;
+                            return EditorPrefs.GetInt(key) == AssetTypeConstants.AVATAR_RELATED;
                         }
                         // キーが存在しない場合は従来の判定
                         return item.Type != "0"
@@ -195,7 +198,7 @@ namespace UnityEditorAssetBrowser.ViewModels
                         // アセットタイプが2（ワールドオブジェクト）のアイテムのみを表示
                         if (EditorPrefs.HasKey(key))
                         {
-                            return EditorPrefs.GetInt(key) == 2;
+                            return EditorPrefs.GetInt(key) == AssetTypeConstants.WORLD;
                         }
                         // キーが存在しない場合は従来の判定
                         return item.Type != "0"
@@ -242,7 +245,7 @@ namespace UnityEditorAssetBrowser.ViewModels
                     if (EditorPrefs.HasKey(key))
                     {
                         var assetType = EditorPrefs.GetInt(key);
-                        if (assetType == 3) // その他
+                        if (assetType == AssetTypeConstants.OTHER) // その他
                         {
                             items.Add(item);
                         }
@@ -282,10 +285,10 @@ namespace UnityEditorAssetBrowser.ViewModels
                     return items.OrderByDescending(item => GetAuthor(item)).ToList();
                 case SortMethod.BoothIdDesc:
                     return items
-                        .OrderByDescending(item => new AssetItem().GetBoothItemId(item))
+                        .OrderByDescending(item => _assetItemHelper.GetBoothItemId(item))
                         .ToList();
                 case SortMethod.BoothIdAsc:
-                    return items.OrderBy(item => new AssetItem().GetBoothItemId(item)).ToList();
+                    return items.OrderBy(item => _assetItemHelper.GetBoothItemId(item)).ToList();
                 default:
                     return items;
             }
@@ -340,66 +343,17 @@ namespace UnityEditorAssetBrowser.ViewModels
         }
 
         /// <summary>
-        /// 画像キャッシュを再取得する
+        /// 画像キャッシュを再取得する（非推奨 - UpdateVisibleImagesを使用）
+        /// 新しい実装では表示中のアイテムのみキャッシュするため、このメソッドは使用しない
         /// </summary>
         /// <param name="aeDatabasePath">AEデータベースのパス</param>
         /// <param name="kaDatabasePath">KAデータベースのパス</param>
+        [System.Obsolete("RefreshImageCache is deprecated. Use ImageServices.Instance.UpdateVisibleImages instead.")]
         public void RefreshImageCache(string aeDatabasePath, string kaDatabasePath)
         {
+            // 新しい実装ではキャッシュクリアのみ実行
+            // 実際の画像読み込みは表示時に UpdateVisibleImages で行う
             ImageServices.Instance.ClearCache();
-
-            // AEの画像をキャッシュ
-            if (_aeDatabase?.Items != null)
-            {
-                foreach (var item in _aeDatabase.Items)
-                {
-                    var imagePath = Path.Combine(aeDatabasePath, "images", item.ImagePath);
-                    LoadTexture(imagePath, aeDatabasePath, kaDatabasePath);
-                }
-            }
-
-            // KAの画像をキャッシュ
-            if (_kaAvatarsDatabase?.data != null)
-            {
-                foreach (var item in _kaAvatarsDatabase.data)
-                {
-                    var imagePath = Path.Combine(
-                        kaDatabasePath,
-                        "images",
-                        item.description.imageFilename
-                    );
-                    LoadTexture(imagePath, aeDatabasePath, kaDatabasePath);
-                }
-            }
-            if (_kaWearablesDatabase?.data != null)
-            {
-                foreach (var item in _kaWearablesDatabase.data)
-                {
-                    if (string.IsNullOrEmpty(item.description.imageFilename))
-                    {
-                        continue;
-                    }
-
-                    var imagePath = Path.Combine(
-                        kaDatabasePath,
-                        "images",
-                        item.description.imageFilename
-                    );
-                    LoadTexture(imagePath, aeDatabasePath, kaDatabasePath);
-                }
-            }
-            if (_kaWorldObjectsDatabase?.data != null)
-            {
-                foreach (var item in _kaWorldObjectsDatabase.data)
-                {
-                    var imagePath = Path.Combine(
-                        kaDatabasePath,
-                        "images",
-                        item.description.imageFilename
-                    );
-                    LoadTexture(imagePath, aeDatabasePath, kaDatabasePath);
-                }
-            }
         }
 
         #region Helper Methods for Sorting
@@ -433,6 +387,14 @@ namespace UnityEditorAssetBrowser.ViewModels
                         .DateTime
                     : (DateTime?)null;
             }
+            else if (item is KonoAssetOtherAssetItem kaOtherAssetItem)
+            {
+                return kaOtherAssetItem.description.createdAt > 0
+                    ? DateTimeOffset
+                        .FromUnixTimeMilliseconds(kaOtherAssetItem.description.createdAt)
+                        .DateTime
+                    : (DateTime?)null;
+            }
             return null;
         }
 
@@ -454,6 +416,10 @@ namespace UnityEditorAssetBrowser.ViewModels
             {
                 return kaWorldObjectItem.description.name ?? "";
             }
+            else if (item is KonoAssetOtherAssetItem kaOtherAssetItem)
+            {
+                return kaOtherAssetItem.description.name ?? "";
+            }
             return "";
         }
 
@@ -474,6 +440,10 @@ namespace UnityEditorAssetBrowser.ViewModels
             else if (item is KonoAssetWorldObjectItem kaWorldObjectItem)
             {
                 return kaWorldObjectItem.description.creator ?? "";
+            }
+            else if (item is KonoAssetOtherAssetItem kaOtherAssetItem)
+            {
+                return kaOtherAssetItem.description.creator ?? "";
             }
             return "";
         }

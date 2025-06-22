@@ -134,80 +134,134 @@ namespace UnityEditorAssetBrowser.Services
         /// <param name="imagePath">サムネイル画像パス</param>
         private static void SetFolderThumbnails(List<string> folders, string imagePath)
         {
-            if (folders == null || !folders.Any())
-            {
-                Debug.LogWarning("[UnityPackageService] フォルダが指定されていません");
+            if (!ValidateInputParameters(folders, imagePath))
                 return;
-            }
 
-            if (string.IsNullOrEmpty(imagePath))
-            {
-                Debug.LogWarning("[UnityPackageService] サムネイル画像パスが指定されていません");
-                return;
-            }
-
-            // AssetItemViewのインスタンスを作成してGetFullImagePathを呼び出す
-            var assetItemView = new AssetItemView(null);
-            string fullImagePath = assetItemView.GetFullImagePath(imagePath);
-
+            string fullImagePath = GetValidatedImagePath(imagePath);
             if (string.IsNullOrEmpty(fullImagePath))
-            {
-                Debug.LogWarning("[UnityPackageService] 完全な画像パスを取得できませんでした");
                 return;
-            }
 
-            // 画像ファイルが存在するか確認
-            if (!File.Exists(fullImagePath))
-            {
-                Debug.LogWarning(
-                    $"[UnityPackageService] サムネイル画像が見つかりません: {fullImagePath}"
-                );
-                return;
-            }
-
-            // 保存先決定ロジック（除外フォルダが含まれる場合の特別処理）
-            var targetFolders = new HashSet<string>();
-            var excluded = folders
-                .Where(f => ExcludeFolderService.IsExcludedFolder(f.Split('/').Last()))
-                .ToList();
-            if (excluded.Any())
-            {
-                // 最も浅い除外フォルダの1つ上のフォルダを保存先とする
-                var shallowest = excluded.OrderBy(f => f.Count(c => c == '/')).First();
-                var parts = shallowest.Split('/');
-                if (parts.Length > 1)
-                {
-                    string parent = string.Join("/", parts.Take(parts.Length - 1));
-                    // Assets直下のFolderIcon.jpgは絶対に保存しない
-                    if (!string.IsNullOrEmpty(parent) && !IsRootFolderIcon(parent))
-                        targetFolders.Add(parent);
-                }
-                // それより下の階層の新規フォルダは無視
-            }
-            else
-            {
-                // 除外フォルダがなければ、最も深い共通の親ディレクトリのみを対象にする
-                if (folders.Any())
-                {
-                    string commonParent = GetDeepestCommonParent(folders);
-                    if (!string.IsNullOrEmpty(commonParent))
-                    {
-                        string bestFolder = FindBestThumbnailFolder(commonParent);
-                        if (!string.IsNullOrEmpty(bestFolder) && !IsRootFolderIcon(bestFolder))
-                        {
-                            targetFolders.Add(bestFolder);
-                        }
-                    }
-                }
-            }
-
+            var targetFolders = DetermineTargetFolders(folders);
             if (!targetFolders.Any())
             {
                 Debug.LogWarning("[UnityPackageService] 対象フォルダが見つかりませんでした");
                 return;
             }
 
-            // 各フォルダにサムネイル画像をコピー
+            CopyThumbnailsToTargetFolders(targetFolders, fullImagePath);
+        }
+
+        /// <summary>
+        /// 入力パラメータを検証
+        /// </summary>
+        private static bool ValidateInputParameters(List<string> folders, string imagePath)
+        {
+            if (folders == null || !folders.Any())
+            {
+                Debug.LogWarning("[UnityPackageService] フォルダが指定されていません");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(imagePath))
+            {
+                Debug.LogWarning("[UnityPackageService] サムネイル画像パスが指定されていません");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// 検証済みの画像パスを取得
+        /// </summary>
+        private static string GetValidatedImagePath(string imagePath)
+        {
+            var assetItemView = new AssetItemView(null);
+            string fullImagePath = assetItemView.GetFullImagePath(imagePath);
+
+            if (string.IsNullOrEmpty(fullImagePath))
+            {
+                Debug.LogWarning("[UnityPackageService] 完全な画像パスを取得できませんでした");
+                return string.Empty;
+            }
+
+            if (!File.Exists(fullImagePath))
+            {
+                Debug.LogWarning($"[UnityPackageService] サムネイル画像が見つかりません: {fullImagePath}");
+                return string.Empty;
+            }
+
+            return fullImagePath;
+        }
+
+        /// <summary>
+        /// サムネイル保存対象フォルダを決定
+        /// </summary>
+        private static HashSet<string> DetermineTargetFolders(List<string> folders)
+        {
+            var targetFolders = new HashSet<string>();
+            var excludedFolders = GetExcludedFolders(folders);
+
+            if (excludedFolders.Any())
+            {
+                ProcessExcludedFolders(excludedFolders, targetFolders);
+            }
+            else
+            {
+                ProcessNormalFolders(folders, targetFolders);
+            }
+
+            return targetFolders;
+        }
+
+        /// <summary>
+        /// 除外フォルダのリストを取得
+        /// </summary>
+        private static List<string> GetExcludedFolders(List<string> folders)
+        {
+            return folders
+                .Where(f => ExcludeFolderService.IsExcludedFolder(f.Split('/').Last()))
+                .ToList();
+        }
+
+        /// <summary>
+        /// 除外フォルダが含まれる場合の処理
+        /// </summary>
+        private static void ProcessExcludedFolders(List<string> excludedFolders, HashSet<string> targetFolders)
+        {
+            var shallowest = excludedFolders.OrderBy(f => f.Count(c => c == '/')).First();
+            var parts = shallowest.Split('/');
+            if (parts.Length > 1)
+            {
+                string parent = string.Join("/", parts.Take(parts.Length - 1));
+                if (!string.IsNullOrEmpty(parent) && !IsRootFolderIcon(parent))
+                    targetFolders.Add(parent);
+            }
+        }
+
+        /// <summary>
+        /// 通常フォルダの処理
+        /// </summary>
+        private static void ProcessNormalFolders(List<string> folders, HashSet<string> targetFolders)
+        {
+            if (!folders.Any()) return;
+
+            string commonParent = GetDeepestCommonParent(folders);
+            if (!string.IsNullOrEmpty(commonParent))
+            {
+                string bestFolder = FindBestThumbnailFolder(commonParent);
+                if (!string.IsNullOrEmpty(bestFolder) && !IsRootFolderIcon(bestFolder))
+                {
+                    targetFolders.Add(bestFolder);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 対象フォルダにサムネイルをコピー
+        /// </summary>
+        private static void CopyThumbnailsToTargetFolders(HashSet<string> targetFolders, string fullImagePath)
+        {
             foreach (string folder in targetFolders)
             {
                 try
@@ -217,50 +271,50 @@ namespace UnityEditorAssetBrowser.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogWarning(
-                        $"[UnityPackageService] サムネイル画像のコピーに失敗しました: {folder} - {ex.Message}"
-                    );
+                    Debug.LogWarning($"[UnityPackageService] サムネイル画像のコピーに失敗しました: {folder} - {ex.Message}");
                 }
-            }
-
-            // 最適なサムネイル保存先を決定する
-            static string FindBestThumbnailFolder(string folder)
-            {
-                string[] parts = folder.Split('/');
-                // 除外フォルダがパスに含まれる場合は、最初の除外フォルダの1つ上を返す
-                for (int i = 1; i < parts.Length; i++)
-                {
-                    if (ExcludeFolderService.IsExcludedFolder(parts[i]))
-                    {
-                        return string.Join("/", parts.Take(i));
-                    }
-                }
-                // 再帰的に最適な深さを探す
-                string current = folder;
-                while (true)
-                {
-                    var dirs = Directory.GetDirectories(current).ToList();
-                    var files = Directory
-                        .GetFiles(current)
-                        .Where(f => Path.GetExtension(f) != ".meta")
-                        .ToList();
-                    // フォルダが1つだけ、かつ除外フォルダでなく、ファイルが無い場合はさらに深く
-                    if (
-                        dirs.Count == 1
-                        && !ExcludeFolderService.IsExcludedFolder(Path.GetFileName(dirs[0]))
-                        && files.Count == 0
-                    )
-                    {
-                        current = dirs[0];
-                        continue;
-                    }
-                    break;
-                }
-                return current;
             }
 
             // アセットデータベースを更新して表示を更新
             AssetDatabase.Refresh();
+        }
+
+        /// <summary>
+        /// 最適なサムネイル保存先を決定する
+        /// </summary>
+        private static string FindBestThumbnailFolder(string folder)
+        {
+            string[] parts = folder.Split('/');
+            // 除外フォルダがパスに含まれる場合は、最初の除外フォルダの1つ上を返す
+            for (int i = 1; i < parts.Length; i++)
+            {
+                if (ExcludeFolderService.IsExcludedFolder(parts[i]))
+                {
+                    return string.Join("/", parts.Take(i));
+                }
+            }
+            // 再帰的に最適な深さを探す
+            string current = folder;
+            while (true)
+            {
+                var dirs = Directory.GetDirectories(current).ToList();
+                var files = Directory
+                    .GetFiles(current)
+                    .Where(f => Path.GetExtension(f) != ".meta")
+                    .ToList();
+                // フォルダが1つだけ、かつ除外フォルダでなく、ファイルが無い場合はさらに深く
+                if (
+                    dirs.Count == 1
+                    && !ExcludeFolderService.IsExcludedFolder(Path.GetFileName(dirs[0]))
+                    && files.Count == 0
+                )
+                {
+                    current = dirs[0];
+                    continue;
+                }
+                break;
+            }
+            return current;
         }
 
         // importPackageCompleted 用の一時ハンドラ
