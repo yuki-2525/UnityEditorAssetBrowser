@@ -48,7 +48,7 @@ namespace UnityEditorAssetBrowser
             EditorGUILayout.Space(20);
 
             // 説明文
-            EditorGUILayout.LabelField("2025年10月20日以降のアップデートを反映するためには、ツールの移行が必要です。", richStyle);
+            EditorGUILayout.LabelField("2025年10月22日以降のアップデートを反映するためには、ツールの移行が必要です。", richStyle);
             EditorGUILayout.Space(10);
 
             var linkStyle = new GUIStyle(EditorStyles.label)
