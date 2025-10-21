@@ -304,7 +304,7 @@ namespace UnityEditorAssetBrowser.Views
             // タグ
             if (tags != null && tags.Length > 0)
             {
-                GUILayout.Label($"タグ: {string.Join(", ", tags)}");
+                GUILayout.Label($"タグ: {string.Join(", ", tags)}", EditorStyles.wordWrappedLabel);
             }
 
             // メモ
@@ -370,7 +370,7 @@ namespace UnityEditorAssetBrowser.Views
                     ? GetAESupportedAvatarsText(supportedAvatars)
                     : $"対応アバター: {string.Join(", ", supportedAvatars)}";
 
-            GUILayout.Label(supportedAvatarsText);
+            GUILayout.Label(supportedAvatarsText, EditorStyles.wordWrappedLabel);
         }
 
         /// <summary>

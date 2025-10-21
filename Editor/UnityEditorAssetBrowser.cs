@@ -111,6 +111,9 @@ namespace UnityEditorAssetBrowser
         /// </summary>
         private void OnEnable()
         {
+            // 移行通知の表示
+            MigrationNoticeWindow.ShowWindow();
+
             // 除外フォルダ初期化と合成済みリスト保存
             ExcludeFolderService.InitializeDefaultExcludeFolders();
             var prefs = ExcludeFolderService.LoadPrefs();
